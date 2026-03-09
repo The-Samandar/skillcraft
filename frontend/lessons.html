@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мои уроки — Skillcraft</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;900&family=Mulish:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a; --dark: #111214; --card: #16181c;
+    --border: #222428; --green: #22c55e; --green-muted: rgba(34,197,94,0.08);
+    --white: #f4f4f0; --muted: #8a8f9a; --accent: #a3e635;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--black); color: var(--white); font-family: 'Mulish', sans-serif; min-height: 100vh; }
+
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    padding: 16px 48px; display: flex; align-items: center; justify-content: space-between;
+    background: rgba(10,10,10,0.95); backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { font-family: 'Unbounded', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.08em; color: var(--white); text-decoration: none; }
+  .logo span { color: var(--green); }
+  .logout-btn { background: none; border: 1px solid var(--border); color: var(--muted); font-size: 12px; padding: 7px 14px; cursor: pointer; font-family: 'Mulish', sans-serif; transition: border-color 0.15s; }
+  .logout-btn:hover { border-color: var(--green); color: var(--white); }
+
+  main { max-width: 640px; margin: 0 auto; padding: 80px 24px; }
+
+  .page-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--green); margin-bottom: 12px; }
+  h1 { font-family: 'Unbounded', sans-serif; font-weight: 700; font-size: clamp(24px, 4vw, 38px); letter-spacing: -0.02em; margin-bottom: 8px; line-height: 1.15; }
+  .email-line { font-size: 13px; color: var(--muted); margin-bottom: 48px; }
+
+  /* Большая карточка загрузки */
+  .download-card {
+    background: var(--dark);
+    border: 1px solid var(--border);
+    padding: 48px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .download-card::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px; height: 200px;
+    background: radial-gradient(ellipse, rgba(34,197,94,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .download-icon { font-size: 64px; margin-bottom: 24px; position: relative; }
+  .download-title {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 700; font-size: 20px;
+    margin-bottom: 12px; position: relative;
+  }
+  .download-desc {
+    font-size: 14px; color: var(--muted);
+    line-height: 1.7; margin-bottom: 32px;
+    position: relative;
+  }
+
+  /* Список уроков внутри */
+  .lessons-list {
+    text-align: left;
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    position: relative;
+  }
+  .lessons-list-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--green);
+    margin-bottom: 14px;
+  }
+  .lesson-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .lesson-row:last-child { border-bottom: none; }
+  .lesson-num {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 10px; font-weight: 700;
+    color: var(--green); min-width: 22px;
+  }
+  .lesson-name { color: var(--muted); }
+
+  /* Кнопка скачать */
+  .btn-download {
+    display: block; width: 100%;
+    background: var(--green); color: var(--black);
+    font-family: 'Unbounded', sans-serif; font-weight: 700;
+    font-size: 14px; letter-spacing: 0.05em;
+    padding: 20px; border: none; cursor: pointer;
+    transition: all 0.2s; position: relative;
+  }
+  .btn-download:hover:not(:disabled) {
+    background: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 48px rgba(34,197,94,0.3);
+  }
+  .btn-download:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn-note {
+    font-size: 12px; color: var(--muted);
+    margin-top: 14px; position: relative;
+  }
+
+  /* Прогресс загрузки */
+  .progress-wrap { margin-top: 16px; display: none; }
+  .progress-bar-bg {
+    background: var(--border); height: 4px;
+    overflow: hidden; margin-bottom: 8px;
+  }
+  .progress-bar { height: 100%; background: var(--green); width: 0%; transition: width 0.3s; }
+  .progress-text { font-size: 12px; color: var(--muted); text-align: center; }
+
+  /* Spinner */
+  .spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid rgba(0,0,0,0.3); border-top-color: var(--black);
+    border-radius: 50%; animation: spin 0.6s linear infinite;
+    vertical-align: middle; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    padding: 12px 22px; font-size: 14px; font-weight: 600;
+    z-index: 999; white-space: nowrap; opacity: 0;
+    transition: opacity 0.3s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  .toast.ok { background: var(--green); color: var(--black); }
+  .toast.err { background: #dc2626; color: white; }
+
+  /* Login Gate */
+  .gate {
+    max-width: 420px; margin: 80px auto;
+    padding: 48px 36px; background: var(--dark);
+    border: 1px solid var(--border); text-align: center;
+  }
+  .gate h2 { font-family: 'Unbounded', sans-serif; font-weight: 700; font-size: 20px; margin-bottom: 12px; }
+  .gate p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
+  .sc-input {
+    width: 100%; background: var(--card); border: 1px solid var(--border);
+    color: var(--white); font-family: 'Mulish', sans-serif;
+    font-size: 15px; padding: 13px 15px; outline: none; margin-bottom: 14px;
+    transition: border-color 0.15s;
+  }
+  .sc-input:focus { border-color: var(--green); }
+  .sc-btn {
+    width: 100%; background: var(--green); color: var(--black);
+    font-family: 'Unbounded', sans-serif; font-weight: 700;
+    font-size: 13px; letter-spacing: 0.05em;
+    padding: 15px; border: none; cursor: pointer; transition: background 0.2s;
+  }
+  .sc-btn:hover { background: var(--accent); }
+  .gate-error {
+    background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+    color: #fca5a5; font-size: 13px; padding: 10px 14px;
+    margin-bottom: 14px; display: none;
+  }
+  .gate-error.visible { display: block; }
+
+  @media (max-width: 600px) {
+    nav { padding: 14px 20px; }
+    main { padding: 48px 16px; }
+    .download-card { padding: 32px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Skill<span>craft</span></a>
+  <button class="logout-btn" id="logoutBtn" style="display:none" onclick="logout()">Выйти</button>
+</nav>
+
+<div id="appRoot"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+  // ⚠️ ЗАМЕНИ НА РЕАЛЬНЫЙ URL ПОСЛЕ ДЕПЛОЯ
+  const API_URL = 'http://localhost:3000';
+
+  const LESSONS = [
+    'Введение в Excel — интерфейс и основы',
+    'Формулы: СУММ, ЕСЛИ, СЧЁТЕСЛИ',
+    'ВПР и поиск между таблицами',
+    'Форматирование и условный стиль',
+    'Работа с датами и текстом',
+    'Сортировка и фильтрация',
+    'Сводные таблицы — анализ за 3 минуты',
+    'Диаграммы и графики',
+    'Защита и безопасность',
+    'Excel в работе и бизнесе',
+    'Финальный проект',
+  ];
+
+  const root = document.getElementById('appRoot');
+
+  async function init() {
+    const token = localStorage.getItem('sc_token');
+    if (!token) { renderGate(); return; }
+
+    try {
+      const res = await fetch(`${API_URL}/api/access/verify`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('invalid');
+      const data = await res.json();
+      document.getElementById('logoutBtn').style.display = 'block';
+      renderDownload(data.email);
+    } catch {
+      localStorage.removeItem('sc_token');
+      renderGate();
+    }
+  }
+
+  function renderDownload(email) {
+    root.innerHTML = `
+      <main>
+        <div class="page-tag">Мои материалы</div>
+        <h1>Курс Excel<br>готов к скачиванию</h1>
+        <p class="email-line">📧 ${email || ''} &nbsp;·&nbsp; Доступ открыт навсегда</p>
+
+        <div class="download-card">
+          <div class="download-icon">📦</div>
+          <div class="download-title">11 уроков Excel — одним архивом</div>
+          <p class="download-desc">
+            Все материалы упакованы в один ZIP файл.<br>
+            Скачай и распакуй — уроки всегда у тебя.
+          </p>
+
+          <div class="lessons-list">
+            <div class="lessons-list-title">Содержимое архива</div>
+            ${LESSONS.map((l, i) => `
+              <div class="lesson-row">
+                <span class="lesson-num">${String(i+1).padStart(2,'0')}</span>
+                <span class="lesson-name">${l}</span>
+              </div>
+            `).join('')}
+          </div>
+
+          <button class="btn-download" id="downloadBtn" onclick="downloadZip()">
+            ↓ Скачать все уроки (ZIP)
+          </button>
+
+          <div class="progress-wrap" id="progressWrap">
+            <div class="progress-bar-bg">
+              <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-text" id="progressText">Загружаем архив…</div>
+          </div>
+
+          <p class="btn-note">Файл скачается на твой компьютер. Распакуй и открывай уроки.</p>
+        </div>
+      </main>
+    `;
+  }
+
+  async function downloadZip() {
+    const token = localStorage.getItem('sc_token');
+    const btn   = document.getElementById('downloadBtn');
+    const wrap  = document.getElementById('progressWrap');
+    const bar   = document.getElementById('progressBar');
+    const txt   = document.getElementById('progressText');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Подготавливаем архив…';
+    wrap.style.display = 'block';
+
+    try {
+      const res = await fetch(`${API_URL}/api/lessons/download`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Ошибка скачивания');
+      }
+
+      // Читаем файл с прогрессом
+      const contentLength = res.headers.get('Content-Length');
+      const reader = res.body.getReader();
+      const chunks = [];
+      let received = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.length;
+        if (contentLength) {
+          const pct = Math.round((received / contentLength) * 100);
+          bar.style.width = pct + '%';
+          txt.textContent = `Загружено ${pct}%…`;
+        } else {
+          txt.textContent = `Загружено ${Math.round(received / 1024)} KB…`;
+        }
+      }
+
+      bar.style.width = '100%';
+      txt.textContent = 'Готово! Сохраняем файл…';
+
+      // Собираем blob и скачиваем
+      const blob = new Blob(chunks, { type: 'application/zip' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'Skillcraft-Excel-11-urokov.zip';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('✅ Архив скачан!', 'ok');
+      btn.innerHTML = '✓ Скачано';
+
+    } catch (e) {
+      console.error(e);
+      showToast(e.message, 'err');
+      btn.disabled = false;
+      btn.innerHTML = '↓ Скачать все уроки (ZIP)';
+      wrap.style.display = 'none';
+
+      if (e.message.includes('403') || e.message.includes('401')) {
+        localStorage.removeItem('sc_token');
+        renderGate();
+      }
+    }
+  }
+
+  function renderGate() {
+    root.innerHTML = `
+      <div class="gate">
+        <div style="font-size:48px;margin-bottom:20px">🔐</div>
+        <h2>Введи email</h2>
+        <p>Укажи email который использовал при покупке курса</p>
+        <input type="email" class="sc-input" id="gateEmail" placeholder="your@email.com" />
+        <div class="gate-error" id="gateErr"></div>
+        <button class="sc-btn" onclick="gateLogin()">Войти →</button>
+        <p style="margin-top:16px;font-size:12px;color:var(--muted)">
+          Ещё не купил? <a href="/" style="color:var(--green);text-decoration:none">На главную</a>
+        </p>
+      </div>
+    `;
+    document.getElementById('gateEmail').addEventListener('keydown', e => {
+      if (e.key === 'Enter') gateLogin();
+    });
+  }
+
+  async function gateLogin() {
+    const email = document.getElementById('gateEmail')?.value?.trim();
+    const err   = document.getElementById('gateErr');
+    if (!email) return;
+    err.classList.remove('visible');
+    try {
+      const res  = await fetch(`${API_URL}/api/access/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (data.token) {
+        localStorage.setItem('sc_token', data.token);
+        document.getElementById('logoutBtn').style.display = 'block';
+        renderDownload(email);
+      } else {
+        err.textContent = data.error || 'Доступ не найден';
+        err.classList.add('visible');
+      }
+    } catch {
+      const errEl = document.getElementById('gateErr');
+      if (errEl) { errEl.textContent = 'Ошибка соединения'; errEl.classList.add('visible'); }
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('sc_token');
+    document.getElementById('logoutBtn').style.display = 'none';
+    renderGate();
+  }
+
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast show ${type}`;
+    setTimeout(() => { t.className = 'toast'; }, 3500);
+  }
+
+  init();
+</script>
+</body>
+</html>
