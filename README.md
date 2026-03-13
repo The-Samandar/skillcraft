@@ -98,8 +98,8 @@ PAYME_SECRET_KEY=боевой_ключ
 ### Цена курса:
 В файле `backend/.env`:
 ```
-COURSE_PRICE_TIYIN=9900000    # 99 000 UZS
-COURSE_PRICE_DISPLAY=99 000 UZS
+COURSE_PRICE_TIYIN=9900000    # 54 000 UZS
+COURSE_PRICE_DISPLAY=54 000 UZS
 ```
 И в `frontend/index.html` найди строку `sc-price-value` — обнови текст.
 
