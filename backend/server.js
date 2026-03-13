@@ -37,13 +37,13 @@ async function start() {
   app.listen(PORT, () => {
     console.log('');
     console.log('🚀 Skillcraft Backend запущен!');
-    console.log(`📡 http://localhost:${PORT}`);
+    console.log(`📡 http://skillcraft.uz:${PORT}`);
     console.log('');
     console.log('Click endpoints:');
-    console.log(`  Prepare:  POST http://localhost:${PORT}/api/payments/click/prepare`);
-    console.log(`  Complete: POST http://localhost:${PORT}/api/payments/click/complete`);
-    console.log(`  Checkout: GET  http://localhost:${PORT}/api/payments/click/checkout-url`);
-    console.log(`  CardPay:  GET  http://localhost:${PORT}/api/payments/click/card-url`);
+    console.log(`  Prepare:  POST http://skillcraft.uz:${PORT}/api/payments/click/prepare`);
+    console.log(`  Complete: POST http://skillcraft.uz:${PORT}/api/payments/click/complete`);
+    console.log(`  Checkout: GET  http://skillcraft.uz:${PORT}/api/payments/click/checkout-url`);
+    console.log(`  CardPay:  GET  http://skillcraft.uz:${PORT}/api/payments/click/card-url`);
     console.log('');
     console.log('');
   });
