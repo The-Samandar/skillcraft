@@ -238,6 +238,94 @@
     line-height: 1.6;
   }
 
+  /* ─── EXCEL DEMO ─── */
+  #excel-demo {
+    padding: 120px 80px;
+    text-align: center;
+  }
+  .excel-demo-inner { max-width: 640px; margin: 0 auto; }
+  .excel-window {
+    margin-top: 48px;
+    background: #141414;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    text-align: left;
+  }
+  .excel-titlebar {
+    background: #1e1e1e;
+    padding: 10px 14px;
+    display: flex;
+    gap: 6px;
+    border-bottom: 1px solid #2a2a2a;
+  }
+  .excel-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #333;
+  }
+  .excel-formula-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+  }
+  .excel-fx {
+    color: #22c55e;
+    font-weight: 700;
+    font-style: italic;
+    font-size: 15px;
+    min-width: 20px;
+  }
+  .excel-formula-text { color: #22c55e; letter-spacing: 0.02em; }
+  .excel-cursor {
+    color: #22c55e;
+    animation: blink 0.8s step-end infinite;
+    font-weight: 300;
+  }
+  .excel-cursor.hidden { opacity: 0; }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+  .excel-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .excel-table thead tr {
+    background: #1e1e1e;
+    color: #666;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .excel-table th, .excel-table td {
+    padding: 11px 16px;
+    border-bottom: 1px solid #1e1e1e;
+    border-right: 1px solid #1e1e1e;
+  }
+  .excel-table th:first-child, .excel-table td:first-child { width: 36px; }
+  .excel-num { color: #444; font-size: 11px; text-align: center; }
+  .excel-income { color: #22c55e; }
+  .excel-expense { color: #ef4444; }
+  .excel-val { text-align: right; color: #e0e0e0; font-family: 'Courier New', monospace; }
+  .excel-row { opacity: 0; transform: translateY(4px); transition: opacity 0.3s, transform 0.3s; }
+  .excel-row.visible { opacity: 1; transform: translateY(0); }
+  .excel-total { background: #1a1a1a; }
+  .excel-result {
+    color: #22c55e !important;
+    font-weight: 700;
+    background: rgba(34,197,94,0.08);
+    border: 1px solid rgba(34,197,94,0.3) !important;
+    min-width: 80px;
+  }
+  @media (max-width: 768px) {
+    #excel-demo { padding: 80px 24px; }
+  }
+
   /* ─── BLOCK 2: URGENT CTA ─── */
   #block2 {
     border-top: 1px solid var(--border);

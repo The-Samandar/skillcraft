@@ -76,6 +76,61 @@
   </div>
 </section>
 
+<!-- EXCEL DEMO BLOCK -->
+<section id="excel-demo">
+  <div class="excel-demo-inner reveal">
+    <p class="block-label">Посмотри как это работает</p>
+    <h2 class="block-title">Одна формула заменяет<br>час ручной работы</h2>
+    <div class="excel-window">
+      <div class="excel-titlebar">
+        <span class="excel-dot"></span>
+        <span class="excel-dot"></span>
+        <span class="excel-dot"></span>
+      </div>
+      <div class="excel-formula-bar">
+        <span class="excel-fx">fx</span>
+        <span class="excel-formula-text" id="excelFormula"></span>
+        <span class="excel-cursor" id="excelCursor">|</span>
+      </div>
+      <table class="excel-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Описание</th>
+            <th>Тип</th>
+            <th>Сумма</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="excel-row" data-row="2">
+            <td class="excel-num">2</td>
+            <td>Зарплата</td>
+            <td class="excel-income">Доход</td>
+            <td class="excel-val">5 200</td>
+          </tr>
+          <tr class="excel-row" data-row="3">
+            <td class="excel-num">3</td>
+            <td>Аренда</td>
+            <td class="excel-expense">Расход</td>
+            <td class="excel-val">1 200</td>
+          </tr>
+          <tr class="excel-row" data-row="4">
+            <td class="excel-num">4</td>
+            <td>Продукты</td>
+            <td class="excel-expense">Расход</td>
+            <td class="excel-val">450</td>
+          </tr>
+          <tr class="excel-row excel-total" data-row="5">
+            <td class="excel-num">5</td>
+            <td colspan="2"><strong>ИТОГО БАЛАНС:</strong></td>
+            <td class="excel-val excel-result" id="excelResult"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
 <!-- BLOCK 2: URGENT CTA -->
 <section id="block2">
   <div class="urgency-inner reveal">
@@ -92,14 +147,10 @@
 <footer>
   <a href="#" class="logo">Skill<span>craft</span></a>
   <p>Основы Excel для начинающих</p>
-  <p>&copy; 2025 Skillcraft. Все права защищены.</p>
+  <p>&copy; 2026 Skillcraft. Все права защищены.</p>
 </footer>
 
-<!-- ══════════════════════════════════════════
-     МОДАЛЬНОЕ ОКНО ОПЛАТЫ
-     Аккуратно добавлено к существующему сайту.
-     Не изменяет ни одного существующего блока.
-══════════════════════════════════════════ -->
+<!--МОДАЛЬНОЕ ОКНО ОПЛАТЫ-->
 <div class="sc-modal-overlay" id="scModalOverlay">
   <div class="sc-modal" id="scModal" role="dialog" aria-modal="true">
 
@@ -176,6 +227,7 @@
 <!-- /МОДАЛЬНОЕ ОКНО -->
 
 <script>
+  // REVEAL OBSERVER
   const reveals = document.querySelectorAll('.reveal');
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -187,9 +239,11 @@
   }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
   reveals.forEach(el => observer.observe(el));
 
-
+  // ══════════════════════════════════════════════════════════
   // PAYMENT MODAL
+  // ══════════════════════════════════════════════════════════
 
+  // ⚠️ BACKEND URL — замени на реальный после деплоя
   // Локально: https://skillcraft.uz:3000
   // Продакшен: https://api.yourdomain.uz
   const API_URL = 'https://skillcraft.uz:3000';
@@ -353,6 +407,66 @@
       startPayment(btn.dataset.provider);
     });
   });
+
+  // ─── EXCEL DEMO ANIMATION ───
+  const formula = '=C2-СУММ(C3:C4)';
+  const formulaEl = document.getElementById('excelFormula');
+  const cursorEl  = document.getElementById('excelCursor');
+  const resultEl  = document.getElementById('excelResult');
+  const rows      = document.querySelectorAll('.excel-row');
+
+  let demoStarted = false;
+
+  function runExcelDemo() {
+    if (demoStarted) return;
+    demoStarted = true;
+
+    // Шаг 1 — печатаем формулу
+    let i = 0;
+    const typeInterval = setInterval(() => {
+      formulaEl.textContent = formula.slice(0, i + 1);
+      i++;
+      if (i >= formula.length) {
+        clearInterval(typeInterval);
+        cursorEl.classList.add('hidden');
+
+        // Шаг 2 — показываем строки таблицы по очереди
+        rows.forEach((row, idx) => {
+          setTimeout(() => {
+            row.classList.add('visible');
+
+            // Шаг 3 — последняя строка — анимируем результат
+            if (idx === rows.length - 1) {
+              setTimeout(() => {
+                let count = 0;
+                const target = 3550;
+                const step = Math.ceil(target / 30);
+                const counter = setInterval(() => {
+                  count = Math.min(count + step, target);
+                  resultEl.textContent = count.toLocaleString('ru-RU');
+                  if (count >= target) clearInterval(counter);
+                }, 40);
+              }, 200);
+            }
+          }, idx * 250);
+        });
+      }
+    }, 60);
+  }
+
+  // Запускаем когда блок входит в зону видимости
+  const demoSection = document.getElementById('excel-demo');
+  if (demoSection) {
+    const demoObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          setTimeout(runExcelDemo, 300);
+          demoObserver.disconnect();
+        }
+      });
+    }, { threshold: 0.3 });
+    demoObserver.observe(demoSection);
+  }
 
   step2Back.addEventListener('click', () => showStep(1));
 </script>
