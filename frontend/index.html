@@ -150,19 +150,18 @@
           <span class="sc-provider-logo click-logo">Click</span>
           <span class="sc-provider-desc">Через приложение Click</span>
         </button>
-        <button class="sc-provider-btn" id="scBtnClickCard" data-provider="click_card">
-          <span class="sc-provider-logo click-logo">Click — Карта</span>
-          <span class="sc-provider-desc">С любой карты (без регистрации)</span>
-        </button>
         <button class="sc-provider-btn" id="scBtnPayme" data-provider="payme">
           <span class="sc-provider-logo payme-logo">Payme</span>
           <span class="sc-provider-desc">Оплата через Payme</span>
+        </button>
+        <button class="sc-provider-btn" id="scBtnClickCard" data-provider="click_card">
+          <span class="sc-provider-logo click-logo">Humo / Uzcard</span>
+          <span class="sc-provider-desc">С любой карты (без регистрации)</span>
         </button>
       </div>
 
       <div class="sc-error" id="scStep2Error"></div>
 
-      <button class="sc-btn-next" id="scStep2Pay" disabled>Перейти к оплате →</button>
       <button class="sc-back" id="scStep2Back">← Изменить email</button>
     </div>
 
@@ -177,9 +176,6 @@
 <!-- /МОДАЛЬНОЕ ОКНО -->
 
 <script>
-  // ══════════════════════════════════════════════════════════
-  // REVEAL OBSERVER (существующий код, не изменён)
-  // ══════════════════════════════════════════════════════════
   const reveals = document.querySelectorAll('.reveal');
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -191,14 +187,12 @@
   }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
   reveals.forEach(el => observer.observe(el));
 
-  // ══════════════════════════════════════════════════════════
-  // PAYMENT MODAL
-  // ══════════════════════════════════════════════════════════
 
-  // ⚠️ BACKEND URL — замени на реальный после деплоя
-  // Локально: http://skillcraft.uz:3000
+  // PAYMENT MODAL
+
+  // Локально: https://skillcraft.uz:3000
   // Продакшен: https://api.yourdomain.uz
-  const API_URL = 'http://skillcraft.uz:3000';
+  const API_URL = 'https://skillcraft.uz:3000';
 
   // ─── DOM ───
   const overlay    = document.getElementById('scModalOverlay');
@@ -297,38 +291,21 @@
     if (e.key === 'Enter') step1Next.click();
   });
 
-  // ─── ШАГ 2: ВЫБОР ПРОВАЙДЕРА ───
+  // ─── ШАГ 2: ВЫБОР ПРОВАЙДЕРА — сразу переходим к оплате ───
   const btnClickCard = document.getElementById('scBtnClickCard');
 
-  [btnClick, btnClickCard, btnPayme].forEach(btn => {
-    btn.addEventListener('click', () => {
-      btnClick.classList.remove('selected');
-      btnClickCard.classList.remove('selected');
-      btnPayme.classList.remove('selected');
-      btn.classList.add('selected');
-      selectedProvider = btn.dataset.provider;
-      step2Pay.disabled = false;
-      hideError(step2Error);
-    });
-  });
-
-  step2Back.addEventListener('click', () => showStep(1));
-
-  // ─── ШАГ 2: ОПЛАТА ───
-  step2Pay.addEventListener('click', async () => {
-    if (!selectedProvider) return;
+  async function startPayment(provider) {
+    selectedProvider = provider;
     hideError(step2Error);
     showStep(3);
 
     try {
-      // 1. Создаём заказ на backend
       const orderRes = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: emailInput.value.trim(),
-          // click_card использует тот же provider 'click' на backend
-          provider: selectedProvider === 'click_card' ? 'click' : selectedProvider,
+          provider: provider === 'click_card' ? 'click' : provider,
         }),
       });
 
@@ -339,41 +316,45 @@
 
       const { order } = await orderRes.json();
       currentOrderId = order.id;
-
-      // Сохраняем для страницы success
       localStorage.setItem('sc_order_id', order.id);
       localStorage.setItem('sc_email', emailInput.value.trim());
 
-      // 2. Получаем checkout URL в зависимости от провайдера
       let checkoutEndpoint;
-      if (selectedProvider === 'click') {
+      if (provider === 'click') {
         checkoutEndpoint = `${API_URL}/api/payments/click/checkout-url?orderId=${order.id}`;
-      } else if (selectedProvider === 'click_card') {
+      } else if (provider === 'click_card') {
         checkoutEndpoint = `${API_URL}/api/payments/click/card-url?orderId=${order.id}`;
       } else {
         checkoutEndpoint = `${API_URL}/api/payments/payme/checkout-url?orderId=${order.id}`;
       }
 
       const checkoutRes = await fetch(checkoutEndpoint);
-
       if (!checkoutRes.ok) {
         const err = await checkoutRes.json().catch(() => ({}));
         throw new Error(err.error || 'Ошибка получения ссылки оплаты');
       }
 
       const { checkout_url } = await checkoutRes.json();
+      window.location.href = checkout_url;
 
-      // 3. Редиректим на страницу оплаты
-      setTimeout(() => {
-        window.location.href = checkout_url;
-      }, 600);
-
-    } catch (err) {
-      console.error('Payment error:', err);
+    } catch (e) {
+      console.error(e);
       showStep(2);
-      showError(step2Error, err.message || 'Ошибка. Попробуйте ещё раз.');
+      showError(step2Error, e.message);
     }
+  }
+
+  [btnClick, btnClickCard, btnPayme].forEach(btn => {
+    btn.addEventListener('click', () => {
+      btnClick.classList.remove('selected');
+      btnClickCard.classList.remove('selected');
+      btnPayme.classList.remove('selected');
+      btn.classList.add('selected');
+      startPayment(btn.dataset.provider);
+    });
   });
+
+  step2Back.addEventListener('click', () => showStep(1));
 </script>
 </body>
 </html>

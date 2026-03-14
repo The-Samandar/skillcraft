@@ -76,8 +76,7 @@
 </div>
 
 <script>
-  // ⚠️ ЗАМЕНИ НА РЕАЛЬНЫЙ BACKEND URL ПОСЛЕ ДЕПЛОЯ
-  const API_URL = 'http://skillcraft.uz:3000';
+  const API_URL = 'https://skillcraft.uz:3000';
 
   const card = document.getElementById('mainCard');
 
@@ -91,7 +90,6 @@
     }
 
     try {
-      // Проверяем статус заказа
       const res = await fetch(`${API_URL}/api/orders/${orderId}`);
       const order = await res.json();
 
