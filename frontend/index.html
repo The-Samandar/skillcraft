@@ -5,7 +5,758 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Skillcraft — Основы Excel для начинающих</title>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;900&family=Mulish:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./style/main.css">
+<style>
+  :root {
+    --black: #0a0a0a;
+    --dark: #111214;
+    --card: #16181c;
+    --border: #222428;
+    --green: #22c55e;
+    --green-muted: rgba(34,197,94,0.08);
+    --white: #f4f4f0;
+    --muted: #8a8f9a;
+    --accent: #a3e635;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Mulish', sans-serif;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.5;
+  }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 18px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10,10,10,0.9);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    color: var(--white);
+    text-decoration: none;
+  }
+  .logo span { color: var(--green); }
+
+  /* ─── HERO / CTA ─── */
+  #hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 100px 48px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(34,197,94,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34,197,94,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .hero-glow {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 800px; height: 500px;
+    background: radial-gradient(ellipse, rgba(34,197,94,0.1) 0%, transparent 65%);
+    pointer-events: none;
+  }
+
+  .hero-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 24px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .hero-title {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 900;
+    font-size: clamp(36px, 6vw, 76px);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    max-width: 780px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+
+  .hero-title em {
+    font-style: normal;
+    color: var(--green);
+  }
+
+  .hero-sub {
+    margin-top: 20px;
+    font-size: 16px;
+    font-weight: 300;
+    color: var(--muted);
+    max-width: 440px;
+    line-height: 1.65;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  .btn-buy {
+    margin-top: 40px;
+    display: inline-block;
+    background: var(--green);
+    color: var(--black);
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    padding: 18px 52px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+  .btn-buy:hover {
+    background: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: 0 16px 48px rgba(34,197,94,0.35);
+  }
+
+  .hero-note {
+    margin-top: 18px;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── BLOCK 1: ЧТО ВЫ ПОЛУЧИТЕ ─── */
+  #block1 {
+    border-top: 1px solid var(--border);
+    padding: 80px 48px;
+    background: var(--dark);
+  }
+
+  .block-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .block-title {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 700;
+    font-size: clamp(22px, 3vw, 38px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto 56px;
+  }
+
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .skill-card {
+    background: var(--dark);
+    padding: 32px 28px;
+    transition: background 0.2s;
+    position: relative;
+  }
+  .skill-card:hover { background: var(--card); }
+  .skill-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 0; height: 2px;
+    background: var(--green);
+    transition: width 0.3s ease;
+  }
+  .skill-card:hover::before { width: 100%; }
+
+  .skill-tag {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--green);
+    background: var(--green-muted);
+    border: 1px solid rgba(34,197,94,0.2);
+    padding: 4px 10px;
+    display: inline-block;
+    margin-bottom: 14px;
+    letter-spacing: 0.08em;
+  }
+
+  .skill-card h4 {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
+  .skill-card p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  
+  /* ─── SALE / DISCOUNT ─── */
+  .sale-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+    color: #f87171; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    padding: 6px 14px; margin-bottom: 20px;
+  }
+  .sale-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #ef4444; animation: pulse-red 1s ease-in-out infinite; }
+  @keyframes pulse-red { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.4); } }
+
+  .hero-price-block {
+    display: flex; align-items: center; gap: 16px;
+    justify-content: center; margin: 24px 0 8px;
+    flex-wrap: wrap;
+  }
+  .hero-price-old {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(16px, 2.5vw, 22px);
+    color: #555;
+    position: relative;
+    display: inline-block;
+  }
+  .hero-price-old::after {
+    content: '';
+    position: absolute;
+    left: -2px; right: -2px; top: 50%;
+    height: 2px;
+    background: #ef4444;
+    transform: rotate(-8deg);
+  }
+  .hero-price-new {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 900; color: var(--green);
+    letter-spacing: -0.02em;
+  }
+  .hero-price-save {
+    background: #ef4444; color: white;
+    font-size: 11px; font-weight: 700;
+    padding: 4px 10px; letter-spacing: 0.1em;
+  }
+
+  /* Таймер */
+  .sale-timer {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; margin: 12px 0 28px; flex-wrap: wrap;
+  }
+  .sale-timer-label {
+    font-size: 12px; color: var(--muted); letter-spacing: 0.05em;
+  }
+  .sale-timer-blocks { display: flex; align-items: center; gap: 6px; }
+  .timer-block {
+    background: var(--card); border: 1px solid var(--border);
+    padding: 6px 10px; text-align: center; min-width: 44px;
+  }
+  .timer-num {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 18px; font-weight: 700; color: var(--white);
+    line-height: 1;
+  }
+  .timer-unit {
+    font-size: 9px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    margin-top: 2px;
+  }
+  .timer-sep { color: var(--green); font-weight: 700; font-size: 18px; margin-bottom: 12px; }
+
+  /* Цена в модалке со скидкой */
+  .sc-price-old {
+    font-size: 11px; color: #666;
+    margin-right: 6px;
+    position: relative;
+    display: inline-block;
+  }
+  .sc-price-old::after {
+    content: '';
+    position: absolute;
+    left: -2px; right: -2px; top: 50%;
+    height: 2px;
+    background: #ef4444;
+    transform: rotate(-8deg);
+  }
+  .sc-price-new { color: var(--green); font-weight: 700; }
+  .sc-sale-note {
+    font-size: 11px; color: #f87171;
+    text-align: center; margin-top: -10px; margin-bottom: 14px;
+  }
+
+  /* ─── BLOCK 2: URGENT CTA ─── */
+  #block2 {
+    border-top: 1px solid var(--border);
+    padding: 100px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #block2::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 700px; height: 350px;
+    background: radial-gradient(ellipse, rgba(34,197,94,0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .urgency-inner { position: relative; z-index: 1; }
+
+  .urgency-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 24px;
+  }
+
+  .urgency-title {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 900;
+    font-size: clamp(30px, 5vw, 62px);
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    max-width: 700px;
+    margin: 0 auto 20px;
+  }
+
+  .urgency-title em {
+    font-style: normal;
+    color: var(--green);
+  }
+
+  .urgency-sub {
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--muted);
+    margin-bottom: 44px;
+    letter-spacing: 0.04em;
+  }
+
+  .btn-buy-lg {
+    display: inline-block;
+    background: var(--green);
+    color: var(--black);
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.05em;
+    padding: 22px 64px;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+  }
+  .btn-buy-lg:hover {
+    background: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: 0 20px 60px rgba(34,197,94,0.4);
+  }
+
+  .urgency-note {
+    margin-top: 20px;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 28px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: var(--dark);
+  }
+
+  footer p { font-size: 12px; color: var(--muted); }
+
+  /* ─── REVEAL ─── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ─── MOBILE ─── */
+  @media (max-width: 768px) {
+    nav { padding: 16px 24px; }
+    #hero, #block1, #block2, footer { padding-left: 24px; padding-right: 24px; }
+    .skills-grid { grid-template-columns: 1fr; }
+  }
+  @media (min-width: 769px) and (max-width: 1100px) {
+    .skills-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ══════════════════════════════════════════════
+     МОДАЛЬНОЕ ОКНО ОПЛАТЫ
+     Добавлено к существующему сайту.
+     Дизайн выдержан в стиле Skillcraft.
+  ══════════════════════════════════════════════ */
+
+  .sc-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 9000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .sc-modal-overlay.active {
+    display: flex;
+  }
+
+  .sc-modal {
+    background: var(--dark);
+    border: 1px solid var(--border);
+    width: 100%;
+    max-width: 460px;
+    position: relative;
+    animation: scModalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  @keyframes scModalIn {
+    from { opacity: 0; transform: translateY(24px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .sc-modal-header {
+    padding: 32px 32px 0;
+    position: relative;
+  }
+
+  .sc-modal-tag {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 10px;
+  }
+
+  .sc-modal-title {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  .sc-modal-close {
+    position: absolute;
+    top: 28px;
+    right: 28px;
+    width: 32px;
+    height: 32px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    line-height: 1;
+    padding: 0;
+  }
+  .sc-modal-close:hover {
+    border-color: var(--green);
+    color: var(--white);
+  }
+
+  /* ШАГ 1: EMAIL */
+  .sc-step { padding: 24px 32px 32px; }
+
+  .sc-email-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+
+  .sc-field-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+
+  .sc-input {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--white);
+    font-family: 'Mulish', sans-serif;
+    font-size: 15px;
+    padding: 14px 16px;
+    outline: none;
+    transition: border-color 0.15s;
+    margin-bottom: 20px;
+  }
+  .sc-input:focus { border-color: var(--green); }
+  .sc-input::placeholder { color: var(--muted); }
+
+  .sc-btn-next {
+    width: 100%;
+    background: var(--green);
+    color: var(--black);
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    padding: 16px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sc-btn-next:hover:not(:disabled) {
+    background: var(--accent);
+    transform: translateY(-1px);
+  }
+  .sc-btn-next:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ШАГ 2: ВЫБОР ПРОВАЙДЕРА */
+  .sc-providers {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .sc-provider-btn {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--white);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Mulish', sans-serif;
+    text-align: left;
+    position: relative;
+  }
+  .sc-provider-btn:hover {
+    border-color: var(--green);
+    background: var(--green-muted);
+  }
+  .sc-provider-btn.selected {
+    border-color: var(--green);
+    background: var(--green-muted);
+  }
+  .sc-provider-btn.selected::after {
+    content: '✓';
+    position: absolute;
+    right: 18px;
+    color: var(--green);
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .sc-provider-logo {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    min-width: 120px;
+    display: inline-block;
+  }
+  .sc-provider-logo.click-logo { color: #00b2ff; }
+  .sc-provider-logo.payme-logo { color: #00c4a7; }
+
+  .sc-provider-desc {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* ШАГ 3: РЕДИРЕКТ */
+  .sc-redirect-step {
+    padding: 40px 32px;
+    text-align: center;
+  }
+  .sc-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 20px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .sc-redirect-text {
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  /* ERROR */
+  .sc-error {
+    display: none;
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.25);
+    color: #fca5a5;
+    font-size: 13px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+  .sc-error.visible { display: block; }
+
+  /* PRICE ROW */
+  .sc-price-row {
+    padding: 16px 20px;
+    background: var(--green-muted);
+    border: 1px solid rgba(34,197,94,0.15);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .sc-price-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+  .sc-price-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  .sc-price-old {
+    font-size: 13px;
+    color: #666;
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 600;
+    position: relative;
+    display: inline-block;
+  }
+  .sc-price-old::after {
+    content: '';
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    top: 50%;
+    height: 2px;
+    background: #ef4444;
+    transform: rotate(-8deg);
+  }
+  .sc-price-value {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--green);
+    line-height: 1;
+  }
+
+  /* BACK LINK */
+  .sc-back {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'Mulish', sans-serif;
+    padding: 0;
+    margin-top: 14px;
+    display: block;
+    text-align: center;
+    width: 100%;
+    transition: color 0.15s;
+  }
+  .sc-back:hover { color: var(--white); }
+
+  /* STEP INDICATOR */
+  .sc-steps-indicator {
+    display: flex;
+    gap: 6px;
+    padding: 0 32px 20px;
+  }
+  .sc-step-dot {
+    height: 2px;
+    flex: 1;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .sc-step-dot.active { background: var(--green); }
+
+  @media (max-width: 480px) {
+    .sc-modal-header { padding: 24px 20px 0; }
+    .sc-step { padding: 20px 20px 24px; }
+    .sc-redirect-step { padding: 32px 20px; }
+    .sc-steps-indicator { padding: 0 20px 16px; }
+  }
+</style>
 </head>
 <body>
 
@@ -217,6 +968,9 @@
 <!-- /МОДАЛЬНОЕ ОКНО -->
 
 <script>
+  // ══════════════════════════════════════════════════════════
+  // REVEAL OBSERVER (существующий код, не изменён)
+  // ══════════════════════════════════════════════════════════
   const reveals = document.querySelectorAll('.reveal');
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -228,6 +982,12 @@
   }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
   reveals.forEach(el => observer.observe(el));
 
+  // ══════════════════════════════════════════════════════════
+  // PAYMENT MODAL
+  // ══════════════════════════════════════════════════════════
+
+  // ⚠️ BACKEND URL — замени на реальный после деплоя
+  
   // Продакшен: https://api.yourdomain.uz
   const API_URL = 'https://skillcraft.uz';
 
@@ -391,7 +1151,8 @@
     });
   });
 
-
+  // ─── ТАЙМЕР АКЦИИ ────────────────────────────────────────
+  // ⚠️ ПОМЕНЯЙ ДАТУ ОКОНЧАНИЯ АКЦИИ (формат: YYYY-MM-DD)
   const SALE_END_DATE = '2026-03-24'; // ← ПОМЕНЯЙ ДАТУ ЗДЕСЬ
   const SALE_PRICE    = '49 999 UZS';
   const NORMAL_PRICE  = '99 999 UZS';
