@@ -120,6 +120,7 @@
 
   .hero-sub {
     margin-top: 20px;
+    margin-bottom: 12px;
     font-size: 16px;
     font-weight: 300;
     color: var(--muted);
@@ -252,7 +253,7 @@
     background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
     color: #f87171; font-size: 11px; font-weight: 700;
     letter-spacing: 0.15em; text-transform: uppercase;
-    padding: 6px 14px; margin-bottom: 20px;
+    padding: 6px 14px; margin-bottom: 0;
   }
   .sale-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #ef4444; animation: pulse-red 1s ease-in-out infinite; }
   @keyframes pulse-red { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.4); } }
@@ -671,14 +672,18 @@
   .sc-error.visible { display: block; }
 
   /* PRICE ROW */
+  .sc-price-wrapper {
+    position: relative;
+    margin-bottom: 20px;
+  }
   .sc-price-row {
     padding: 16px 20px;
     background: var(--green-muted);
     border: 1px solid rgba(34,197,94,0.15);
-    margin-bottom: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
   }
   .sc-price-label {
     font-size: 12px;
@@ -686,12 +691,13 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-weight: 600;
+    flex-shrink: 0;
   }
   .sc-price-block {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 2px;
+    gap: 4px;
   }
   .sc-price-old {
     font-size: 13px;
@@ -700,13 +706,12 @@
     font-weight: 600;
     position: relative;
     display: inline-block;
+    white-space: nowrap;
   }
   .sc-price-old::after {
     content: '';
     position: absolute;
-    left: -2px;
-    right: -2px;
-    top: 50%;
+    left: -2px; right: -2px; top: 50%;
     height: 2px;
     background: #ef4444;
     transform: rotate(-8deg);
@@ -717,6 +722,22 @@
     font-size: 22px;
     color: var(--green);
     line-height: 1;
+    white-space: nowrap;
+  }
+  .sc-discount-badge {
+    position: absolute;
+    top: 50%;
+    right: -58px;
+    transform: translateY(-50%);
+    background: #ef4444;
+    color: #fff;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 12px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    z-index: 10;
   }
 
   /* BACK LINK */
@@ -750,11 +771,41 @@
   }
   .sc-step-dot.active { background: var(--green); }
 
-  @media (max-width: 480px) {
+  @media (max-width: 520px) {
     .sc-modal-header { padding: 24px 20px 0; }
     .sc-step { padding: 20px 20px 24px; }
     .sc-redirect-step { padding: 32px 20px; }
     .sc-steps-indicator { padding: 0 20px 16px; }
+
+    .sc-price-row {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+      padding: 14px 16px;
+    }
+    .sc-price-label { text-align: center; }
+    .sc-price-right {
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sc-price-block { align-items: flex-start; }
+    .sc-price-value { font-size: 18px; }
+    .sc-price-old { font-size: 12px; }
+    .sc-discount-badge {
+      position: static;
+      transform: none;
+      display: inline-block;
+      align-self: center;
+      flex-shrink: 0;
+    }
+
+    .sc-provider-logo { min-width: 90px; font-size: 13px; }
+    .sc-provider-desc { font-size: 11px; }
+    .sc-provider-btn { padding: 14px 16px; }
   }
 </style>
 </head>
@@ -789,14 +840,14 @@
   </div>
 
   <div class="hero-price-block">
-    <span class="hero-price-old" id="heroPriceOld">99 999 UZS</span>
+    <span class="hero-price-old" id="heroPriceOld">99 998 UZS</span>
     <span class="hero-price-new" id="heroPriceNew">49 999 UZS</span>
     <span class="hero-price-save">−50%</span>
   </div>
 
   <!-- ТАЙМЕР -->
   <div class="sale-timer">
-    <span class="sale-timer-label">Акция закончится через:</span>
+    <span class="sale-timer-label">Успей купить</span>
     <div class="sale-timer-blocks">
       <div class="timer-block">
         <div class="timer-num" id="timerDays">00</div>
@@ -884,11 +935,7 @@
   <p>&copy; 2026 Skillcraft. Все права защищены.</p>
 </footer>
 
-<!-- ══════════════════════════════════════════
-     МОДАЛЬНОЕ ОКНО ОПЛАТЫ
-     Аккуратно добавлено к существующему сайту.
-     Не изменяет ни одного существующего блока.
-══════════════════════════════════════════ -->
+<!-- МОДАЛЬНОЕ ОКНО ОПЛАТЫ-->
 <div class="sc-modal-overlay" id="scModalOverlay">
   <div class="sc-modal" id="scModal" role="dialog" aria-modal="true">
 
@@ -926,14 +973,19 @@
     <!-- ШАГ 2: ВЫБОР ПРОВАЙДЕРА -->
     <div class="sc-step" id="scStep2" style="display:none">
       <!-- ⬇️ ЦЕНА — замени на свою или передай с backend -->
-      <div class="sc-price-row">
-        <span class="sc-price-label">Курс: 11 уроков Excel</span>
-        <div class="sc-price-block">
-          <span class="sc-price-old" id="scPriceOld">99 999 UZS</span>
-          <span class="sc-price-value sc-price-new" id="scPriceDisplay">49 999 UZS</span>
+      <div class="sc-price-wrapper">
+        <div class="sc-price-row">
+          <span class="sc-price-label">Курс: 11 уроков Excel</span>
+          <div class="sc-price-right">
+            <div class="sc-price-block">
+              <span class="sc-price-old" id="scPriceOld">99 998 UZS</span>
+              <span class="sc-price-value sc-price-new" id="scPriceDisplay">49 999 UZS</span>
+            </div>
+            <span class="sc-discount-badge" id="scDiscountBadge">−50%</span>
+          </div>
         </div>
       </div>
-      <p class="sc-sale-note" id="scSaleNote">🔥 Акция до <span id="scSaleDeadline">...</span> — потом будет 99 999 UZS</p>
+      <p class="sc-sale-note" id="scSaleNote">🔥 Акция действует до <span id="scSaleDeadline">...</span></p>
 
       <p class="sc-email-label">Выберите удобный способ оплаты:</p>
 
@@ -968,9 +1020,6 @@
 <!-- /МОДАЛЬНОЕ ОКНО -->
 
 <script>
-  // ══════════════════════════════════════════════════════════
-  // REVEAL OBSERVER (существующий код, не изменён)
-  // ══════════════════════════════════════════════════════════
   const reveals = document.querySelectorAll('.reveal');
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -981,13 +1030,6 @@
     });
   }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
   reveals.forEach(el => observer.observe(el));
-
-  // ══════════════════════════════════════════════════════════
-  // PAYMENT MODAL
-  // ══════════════════════════════════════════════════════════
-
-  // ⚠️ BACKEND URL — замени на реальный после деплоя
-  
   // Продакшен: https://api.yourdomain.uz
   const API_URL = 'https://skillcraft.uz';
 
@@ -1151,8 +1193,6 @@
     });
   });
 
-  // ─── ТАЙМЕР АКЦИИ ────────────────────────────────────────
-  // ⚠️ ПОМЕНЯЙ ДАТУ ОКОНЧАНИЯ АКЦИИ (формат: YYYY-MM-DD)
   const SALE_END_DATE = '2026-03-24'; // ← ПОМЕНЯЙ ДАТУ ЗДЕСЬ
   const SALE_PRICE    = '49 999 UZS';
   const NORMAL_PRICE  = '99 999 UZS';
@@ -1169,14 +1209,12 @@
     const now  = new Date();
     const diff = saleEnd - now;
 
-    // Обновляем текст дедлайна везде
     const deadlineStr = formatDeadline(saleEnd);
     document.querySelectorAll('#saleDeadlineText, #scSaleDeadline').forEach(el => {
       if (el) el.textContent = deadlineStr;
     });
 
     if (diff <= 0) {
-      // Акция закончилась — показываем обычную цену
       const heroPriceNew = document.getElementById('heroPriceNew');
       const heroPriceOld = document.getElementById('heroPriceOld');
       const scPriceDisplay = document.getElementById('scPriceDisplay');
@@ -1193,6 +1231,8 @@
       if (scSaleNote) scSaleNote.style.display = 'none';
       if (saleBadge) saleBadge.style.display = 'none';
       if (saleTimer) saleTimer.style.display = 'none';
+      const discountBadge = document.getElementById('scDiscountBadge');
+      if (discountBadge) discountBadge.style.display = 'none';
 
       ['timerDays','timerHours','timerMins','timerSecs'].forEach(id => {
         const el = document.getElementById(id);
