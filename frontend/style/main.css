@@ -238,92 +238,94 @@
     line-height: 1.6;
   }
 
-  /* ─── EXCEL DEMO ─── */
-  #excel-demo {
-    padding: 120px 80px;
-    text-align: center;
+  
+  /* ─── SALE / DISCOUNT ─── */
+  .sale-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+    color: #f87171; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    padding: 6px 14px; margin-bottom: 20px;
   }
-  .excel-demo-inner { max-width: 640px; margin: 0 auto; }
-  .excel-window {
-    margin-top: 48px;
-    background: #141414;
-    border: 1px solid #2a2a2a;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
-    text-align: left;
+  .sale-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #ef4444; animation: pulse-red 1s ease-in-out infinite; }
+  @keyframes pulse-red { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.4); } }
+
+  .hero-price-block {
+    display: flex; align-items: center; gap: 16px;
+    justify-content: center; margin: 24px 0 8px;
+    flex-wrap: wrap;
   }
-  .excel-titlebar {
-    background: #1e1e1e;
-    padding: 10px 14px;
-    display: flex;
-    gap: 6px;
-    border-bottom: 1px solid #2a2a2a;
+  .hero-price-old {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(16px, 2.5vw, 22px);
+    color: #555;
+    position: relative;
+    display: inline-block;
   }
-  .excel-dot {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    background: #333;
+  .hero-price-old::after {
+    content: '';
+    position: absolute;
+    left: -2px; right: -2px; top: 50%;
+    height: 2px;
+    background: #ef4444;
+    transform: rotate(-8deg);
   }
-  .excel-formula-bar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 16px;
-    background: #1a1a1a;
-    border-bottom: 1px solid #2a2a2a;
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
+  .hero-price-new {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 900; color: var(--green);
+    letter-spacing: -0.02em;
   }
-  .excel-fx {
-    color: #22c55e;
-    font-weight: 700;
-    font-style: italic;
-    font-size: 15px;
-    min-width: 20px;
+  .hero-price-save {
+    background: #ef4444; color: white;
+    font-size: 11px; font-weight: 700;
+    padding: 4px 10px; letter-spacing: 0.1em;
   }
-  .excel-formula-text { color: #22c55e; letter-spacing: 0.02em; }
-  .excel-cursor {
-    color: #22c55e;
-    animation: blink 0.8s step-end infinite;
-    font-weight: 300;
+
+  /* Таймер */
+  .sale-timer {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; margin: 12px 0 28px; flex-wrap: wrap;
   }
-  .excel-cursor.hidden { opacity: 0; }
-  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
-  .excel-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
+  .sale-timer-label {
+    font-size: 12px; color: var(--muted); letter-spacing: 0.05em;
   }
-  .excel-table thead tr {
-    background: #1e1e1e;
-    color: #666;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+  .sale-timer-blocks { display: flex; align-items: center; gap: 6px; }
+  .timer-block {
+    background: var(--card); border: 1px solid var(--border);
+    padding: 6px 10px; text-align: center; min-width: 44px;
   }
-  .excel-table th, .excel-table td {
-    padding: 11px 16px;
-    border-bottom: 1px solid #1e1e1e;
-    border-right: 1px solid #1e1e1e;
+  .timer-num {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 18px; font-weight: 700; color: var(--white);
+    line-height: 1;
   }
-  .excel-table th:first-child, .excel-table td:first-child { width: 36px; }
-  .excel-num { color: #444; font-size: 11px; text-align: center; }
-  .excel-income { color: #22c55e; }
-  .excel-expense { color: #ef4444; }
-  .excel-val { text-align: right; color: #e0e0e0; font-family: 'Courier New', monospace; }
-  .excel-row { opacity: 0; transform: translateY(4px); transition: opacity 0.3s, transform 0.3s; }
-  .excel-row.visible { opacity: 1; transform: translateY(0); }
-  .excel-total { background: #1a1a1a; }
-  .excel-result {
-    color: #22c55e !important;
-    font-weight: 700;
-    background: rgba(34,197,94,0.08);
-    border: 1px solid rgba(34,197,94,0.3) !important;
-    min-width: 80px;
+  .timer-unit {
+    font-size: 9px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    margin-top: 2px;
   }
-  @media (max-width: 768px) {
-    #excel-demo { padding: 80px 24px; }
+  .timer-sep { color: var(--green); font-weight: 700; font-size: 18px; margin-bottom: 12px; }
+
+  /* Цена в модалке со скидкой */
+  .sc-price-old {
+    font-size: 11px; color: #666;
+    margin-right: 6px;
+    position: relative;
+    display: inline-block;
+  }
+  .sc-price-old::after {
+    content: '';
+    position: absolute;
+    left: -2px; right: -2px; top: 50%;
+    height: 2px;
+    background: #ef4444;
+    transform: rotate(-8deg);
+  }
+  .sc-price-new { color: var(--green); font-weight: 700; }
+  .sc-sale-note {
+    font-size: 11px; color: #f87171;
+    text-align: center; margin-top: -10px; margin-bottom: 14px;
   }
 
   /* ─── BLOCK 2: URGENT CTA ─── */
@@ -618,7 +620,8 @@
     font-family: 'Unbounded', sans-serif;
     font-weight: 700;
     font-size: 15px;
-    min-width: 72px;
+    min-width: 120px;
+    display: inline-block;
   }
   .sc-provider-logo.click-logo { color: #00b2ff; }
   .sc-provider-logo.payme-logo { color: #00c4a7; }
@@ -662,13 +665,13 @@
 
   /* PRICE ROW */
   .sc-price-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     padding: 16px 20px;
     background: var(--green-muted);
     border: 1px solid rgba(34,197,94,0.15);
     margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
   .sc-price-label {
     font-size: 12px;
@@ -677,11 +680,36 @@
     letter-spacing: 0.08em;
     font-weight: 600;
   }
+  .sc-price-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  .sc-price-old {
+    font-size: 13px;
+    color: #666;
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 600;
+    position: relative;
+    display: inline-block;
+  }
+  .sc-price-old::after {
+    content: '';
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    top: 50%;
+    height: 2px;
+    background: #ef4444;
+    transform: rotate(-8deg);
+  }
   .sc-price-value {
     font-family: 'Unbounded', sans-serif;
     font-weight: 700;
-    font-size: 18px;
+    font-size: 22px;
     color: var(--green);
+    line-height: 1;
   }
 
   /* BACK LINK */
