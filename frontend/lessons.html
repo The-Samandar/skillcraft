@@ -47,19 +47,19 @@
       if (!res.ok) throw new Error('invalid');
       const data = await res.json();
       document.getElementById('logoutBtn').style.display = 'block';
-      renderDownload(data.email);
+      renderDownload(data.phone);
     } catch {
       localStorage.removeItem('sc_token');
       renderGate();
     }
   }
 
-  function renderDownload(email) {
+  function renderDownload(phone) {
     root.innerHTML = `
       <main>
         <div class="page-tag">Мои материалы</div>
         <h1>Курс Excel<br>готов к скачиванию</h1>
-        <p class="email-line">📧 ${email || ''} &nbsp;·&nbsp; Доступ открыт навсегда</p>
+        <p class="phone-line">📱 ${phone || ''} &nbsp;·&nbsp; Доступ открыт навсегда</p>
 
         <div class="download-card">
           <div class="download-icon">📦</div>
@@ -117,7 +117,6 @@
         throw new Error(err.error || 'Ошибка скачивания');
       }
 
-      // Читаем файл с прогрессом
       const contentLength = res.headers.get('Content-Length');
       const reader = res.body.getReader();
       const chunks = [];
@@ -140,7 +139,6 @@
       bar.style.width = '100%';
       txt.textContent = 'Готово! Сохраняем файл…';
 
-      // Собираем blob и скачиваем
       const blob = new Blob(chunks, { type: 'application/zip' });
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
@@ -172,9 +170,9 @@
     root.innerHTML = `
       <div class="gate">
         <div style="font-size:48px;margin-bottom:20px">🔐</div>
-        <h2>Введи email</h2>
-        <p>Укажи email который использовал при покупке курса</p>
-        <input type="email" class="sc-input" id="gateEmail" placeholder="your@email.com" />
+        <h2>Введи номер телефона</h2>
+        <p>Укажи номер телефона, который использовал при покупке курса</p>
+        <input type="tel" class="sc-input" id="gatePhone" placeholder="+998 90 123 45 67" />
         <div class="gate-error" id="gateErr"></div>
         <button class="sc-btn" onclick="gateLogin()">Войти →</button>
         <p style="margin-top:16px;font-size:12px;color:var(--muted)">
@@ -182,34 +180,40 @@
         </p>
       </div>
     `;
-    document.getElementById('gateEmail').addEventListener('keydown', e => {
+    document.getElementById('gatePhone').addEventListener('keydown', e => {
       if (e.key === 'Enter') gateLogin();
     });
   }
 
   async function gateLogin() {
-    const email = document.getElementById('gateEmail')?.value?.trim();
+    const phone = document.getElementById('gatePhone')?.value?.trim();
     const err   = document.getElementById('gateErr');
-    if (!email) return;
+    if (!phone) return;
+
     err.classList.remove('visible');
+
     try {
       const res  = await fetch(`${API_URL}/api/access/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ phone })
       });
       const data = await res.json();
       if (data.token) {
         localStorage.setItem('sc_token', data.token);
+        localStorage.setItem('sc_phone', phone);
         document.getElementById('logoutBtn').style.display = 'block';
-        renderDownload(email);
+        renderDownload(phone);
       } else {
         err.textContent = data.error || 'Доступ не найден';
         err.classList.add('visible');
       }
     } catch {
       const errEl = document.getElementById('gateErr');
-      if (errEl) { errEl.textContent = 'Ошибка соединения'; errEl.classList.add('visible'); }
+      if (errEl) {
+        errEl.textContent = 'Ошибка соединения';
+        errEl.classList.add('visible');
+      }
     }
   }
 

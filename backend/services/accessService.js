@@ -17,23 +17,24 @@ function grantCourseAccess(orderId, userId) {
   return { id };
 }
 
-function checkAccess(emailOrOrderId) {
+function checkAccess(phoneOrOrderId) {
   // По orderId
   let grant = db.prepare(`
     SELECT ag.* FROM access_grants ag
     JOIN orders o ON o.id = ag.order_id
     WHERE ag.order_id = ? AND ag.is_active = 1 AND o.status = 'paid'
-  `).get(emailOrOrderId);
+  `).get(phoneOrOrderId);
   if (grant) return grant;
 
-  // По email
+  // По номеру телефона
   grant = db.prepare(`
     SELECT ag.* FROM access_grants ag
     JOIN orders o ON o.id = ag.order_id
     JOIN users u ON u.id = o.user_id
-    WHERE u.email = ? AND ag.is_active = 1 AND o.status = 'paid'
+    WHERE u.phone = ? AND ag.is_active = 1 AND o.status = 'paid'
     ORDER BY ag.granted_at DESC LIMIT 1
-  `).get(emailOrOrderId);
+  `).get(phoneOrOrderId);
+
   return grant || null;
 }
 

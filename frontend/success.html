@@ -26,10 +26,10 @@
   .icon { font-size: 56px; margin-bottom: 24px; }
   h1 { font-family: 'Unbounded', sans-serif; font-weight: 700; font-size: 22px; margin-bottom: 12px; }
   .sub { font-size: 15px; color: var(--muted); line-height: 1.6; margin-bottom: 28px; }
-  .email-badge {
+  .phone-badge {
     background: var(--green-muted); border: 1px solid rgba(34,197,94,0.2);
     padding: 12px 18px; font-size: 14px; color: #86efac;
-    margin-bottom: 28px; word-break: break-all;
+    margin-bottom: 28px; word-break: break-word;
   }
   .btn {
     display: inline-block; background: var(--green); color: var(--black);
@@ -54,13 +54,13 @@
     margin: 0 auto 20px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .email-form { margin-bottom: 20px; }
-  .email-input {
+  .phone-form { margin-bottom: 20px; }
+  .phone-input {
     width: 100%; background: var(--card); border: 1px solid var(--border);
     color: var(--white); font-family: 'Mulish', sans-serif;
     font-size: 14px; padding: 12px 14px; outline: none; margin-bottom: 12px;
   }
-  .email-input:focus { border-color: var(--green); }
+  .phone-input:focus { border-color: var(--green); }
   .error {
     background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
     color: #fca5a5; font-size: 13px; padding: 10px 14px; margin-bottom: 14px;
@@ -77,15 +77,14 @@
 
 <script>
   const API_URL = 'https://skillcraft.uz';
-
   const card = document.getElementById('mainCard');
 
   async function init() {
     const orderId = localStorage.getItem('sc_order_id');
-    const email   = localStorage.getItem('sc_phone');
+    const phone = localStorage.getItem('sc_phone');
 
     if (!orderId) {
-      renderEmailForm();
+      renderPhoneForm();
       return;
     }
 
@@ -94,18 +93,18 @@
       const order = await res.json();
 
       if (order.status === 'paid') {
-        await getTokenAndRender(orderId, email);
+        await getTokenAndRender(orderId, phone);
       } else if (order.status === 'pending') {
-        renderPending(orderId, email);
+        renderPending(orderId, phone);
       } else {
         renderFailed();
       }
     } catch (e) {
-      renderEmailForm();
+      renderPhoneForm();
     }
   }
 
-  async function getTokenAndRender(orderId, email) {
+  async function getTokenAndRender(orderId, phone) {
     try {
       const res = await fetch(`${API_URL}/api/access/token`, {
         method: 'POST',
@@ -116,49 +115,49 @@
       if (data.token) {
         localStorage.setItem('sc_token', data.token);
         localStorage.removeItem('sc_order_id');
-        renderSuccess(email || data.email);
+        renderSuccess(phone || data.phone);
       } else {
-        renderEmailForm();
+        renderPhoneForm();
       }
     } catch (e) {
-      renderEmailForm();
+      renderPhoneForm();
     }
   }
 
-  function renderSuccess(email) {
+  function renderSuccess(phone) {
     card.innerHTML = `
       <div class="icon">✅</div>
       <h1>Оплата прошла!</h1>
       <p class="sub">Доступ к 11 урокам Excel открыт. Теперь ты можешь скачать все материалы.</p>
-      ${email ? `<div class="email-badge">📧 ${email}</div>` : ''}
+      ${phone ? `<div class="phone-badge">📱 ${phone}</div>` : ''}
       <a href="/lessons.html" class="btn">Перейти к урокам →</a>
-      <p class="note">Сохрани email — он нужен для восстановления доступа</p>
+      <p class="note">Сохрани номер телефона — он нужен для восстановления доступа</p>
     `;
   }
 
-  function renderPending(orderId, email) {
+  function renderPending(orderId, phone) {
     card.innerHTML = `
       <div class="icon">⏳</div>
       <h1>Оплата обрабатывается</h1>
       <p class="sub">Платёж ещё не подтверждён. Обычно это занимает до 2 минут.</p>
-      <button class="btn" onclick="checkAgain('${orderId}','${email||''}')">Проверить ещё раз</button>
-      <p class="note">Если проблема не решается — введи email ниже</p>
-      <br><button class="btn-outline" onclick="renderEmailForm()">Ввести email вручную</button>
+      <button class="btn" onclick="checkAgain('${orderId}','${phone || ''}')">Проверить ещё раз</button>
+      <p class="note">Если проблема не решается — введи номер телефона ниже</p>
+      <br><button class="btn-outline" onclick="renderPhoneForm()">Ввести номер вручную</button>
     `;
   }
 
-  async function checkAgain(orderId, email) {
+  async function checkAgain(orderId, phone) {
     card.innerHTML = `<div class="spinner"></div><p style="color:var(--muted)">Проверяем…</p>`;
     try {
       const res = await fetch(`${API_URL}/api/orders/${orderId}`);
       const order = await res.json();
       if (order.status === 'paid') {
-        await getTokenAndRender(orderId, email);
+        await getTokenAndRender(orderId, phone);
       } else {
-        renderPending(orderId, email);
+        renderPending(orderId, phone);
       }
-    } catch(e) {
-      renderPending(orderId, email);
+    } catch (e) {
+      renderPending(orderId, phone);
     }
   }
 
@@ -171,43 +170,49 @@
     `;
   }
 
-  function renderEmailForm() {
+  function renderPhoneForm() {
     card.innerHTML = `
       <div class="icon">🔑</div>
-      <h1>Войти по email</h1>
-      <p class="sub">Введи email, который использовал при покупке курса</p>
-      <div class="email-form">
-        <input type="email" class="email-input" id="emailInp" placeholder="your@email.com" />
-        <div class="error" id="emailErr"></div>
-        <button class="btn" onclick="loginByEmail()">Получить доступ →</button>
+      <h1>Войти по номеру</h1>
+      <p class="sub">Введи номер телефона, который использовал при покупке курса</p>
+      <div class="phone-form">
+        <input type="tel" class="phone-input" id="phoneInp" placeholder="+998 90 123 45 67" />
+        <div class="error" id="phoneErr"></div>
+        <button class="btn" onclick="loginByPhone()">Получить доступ →</button>
       </div>
       <a href="/" class="btn-outline" style="display:block; text-decoration:none; text-align:center; padding:14px">← На главную</a>
     `;
   }
 
-  async function loginByEmail() {
-    const inp = document.getElementById('emailInp');
-    const err = document.getElementById('emailErr');
-    const email = inp?.value?.trim();
-    if (!email) return;
+  async function loginByPhone() {
+    const inp = document.getElementById('phoneInp');
+    const err = document.getElementById('phoneErr');
+    const phone = inp?.value?.trim();
+    if (!phone) return;
+
     err.style.display = 'none';
+
     try {
       const res = await fetch(`${API_URL}/api/access/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ phone }),
       });
       const data = await res.json();
       if (data.token) {
         localStorage.setItem('sc_token', data.token);
-        renderSuccess(email);
+        localStorage.setItem('sc_phone', phone);
+        renderSuccess(phone);
       } else {
         err.textContent = data.error || 'Доступ не найден';
         err.style.display = 'block';
       }
-    } catch(e) {
-      const errEl = document.getElementById('emailErr');
-      if (errEl) { errEl.textContent = 'Ошибка соединения'; errEl.style.display = 'block'; }
+    } catch (e) {
+      const errEl = document.getElementById('phoneErr');
+      if (errEl) {
+        errEl.textContent = 'Ошибка соединения';
+        errEl.style.display = 'block';
+      }
     }
   }
 
