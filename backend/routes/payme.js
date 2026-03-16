@@ -6,6 +6,15 @@ const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/init');
 const { grantCourseAccess } = require('../services/accessService');
 
+function msg(ru, en, uz) {
+  return {
+    ru,
+    en: en || ru,
+    uz: uz || en || ru,
+  };
+}
+
+
 // ─── АВТОРИЗАЦИЯ ─────────────────────────────────────────────
 // Payme шлёт Basic Auth: login = Merchant ID, password = Secret Key
 function verifyAuth(req) {
@@ -72,7 +81,7 @@ router.post('/callback', (req, res) => {
   // Проверка авторизации
   if (!verifyAuth(req)) {
     return res.json({
-      error: { code: -32504, message: 'Forbidden' },
+      error: { code: -32504, message: msg('Доступ запрещён', 'Forbidden', 'Kirish taqiqlangan') },
       id: req.body?.id ?? null,
     });
   }
@@ -92,7 +101,7 @@ router.post('/callback', (req, res) => {
   if (handlers[method]) return handlers[method](params || {}, id, res);
 
   return res.json({
-    error: { code: -32601, message: 'Method not found' },
+    error: { code: -32601, message: msg('Метод не найден', 'Method not found', 'Metod topilmadi') },
     id,
   });
 });
@@ -104,7 +113,7 @@ function CheckPerformTransaction({ account, amount }, id, res) {
 
   if (!orderCode) {
     return res.json({
-      error: { code: -31050, message: { ru: 'Не указан номер заказа', en: 'Order not specified' } },
+      error: { code: -31050, message: msg('Не указан номер заказа', 'Order not specified', "Buyurtma raqami ko'rsatilmagan") },
       id,
     });
   }
@@ -113,14 +122,14 @@ function CheckPerformTransaction({ account, amount }, id, res) {
 
   if (!order) {
     return res.json({
-      error: { code: -31050, message: { ru: 'Заказ не найден', uz: 'Buyurtma topilmadi', en: 'Order not found' } },
+      error: { code: -31050, message: msg('Заказ не найден', 'Order not found', 'Buyurtma topilmadi') },
       id,
     });
   }
 
   if (order.status === 'paid') {
     return res.json({
-      error: { code: -31050, message: { ru: 'Заказ уже оплачен', en: 'Already paid' } },
+      error: { code: -31050, message: msg('Заказ уже оплачен', 'Already paid', "Buyurtma allaqachon to'langan") },
       id,
     });
   }
@@ -129,7 +138,7 @@ function CheckPerformTransaction({ account, amount }, id, res) {
   if (order.amount !== parseInt(amount)) {
     console.log(`❌ Сумма не совпадает: order.amount=${order.amount}, payme.amount=${amount}`);
     return res.json({
-      error: { code: -31001, message: { ru: 'Неверная сумма', uz: "Noto'g'ri summa", en: 'Incorrect amount' } },
+      error: { code: -31001, message: msg('Неверная сумма', 'Incorrect amount', "Noto'g'ri summa") },
       id,
     });
   }
@@ -144,14 +153,14 @@ function CreateTransaction({ id: payme_id, time, amount, account }, id, res) {
 
   if (!order) {
     return res.json({
-      error: { code: -31050, message: { ru: 'Заказ не найден', en: 'Order not found' } },
+      error: { code: -31050, message: msg('Заказ не найден', 'Order not found', 'Buyurtma topilmadi') },
       id,
     });
   }
 
   if (order.amount !== parseInt(amount)) {
     return res.json({
-      error: { code: -31001, message: { ru: 'Неверная сумма', en: 'Incorrect amount' } },
+      error: { code: -31001, message: msg('Неверная сумма', 'Incorrect amount', "Noto'g'ri summa") },
       id,
     });
   }
@@ -164,7 +173,7 @@ function CreateTransaction({ id: payme_id, time, amount, account }, id, res) {
   if (existing) {
     if (existing.status === 'failed') {
       return res.json({
-        error: { code: -31008, message: { ru: 'Транзакция отменена', en: 'Transaction cancelled' } },
+        error: { code: -31008, message: msg('Транзакция отменена', 'Transaction cancelled', 'Tranzaksiya bekor qilingan') },
         id,
       });
     }
@@ -200,7 +209,7 @@ function PerformTransaction({ id: payme_id }, id, res) {
 
   if (!pay) {
     return res.json({
-      error: { code: -31003, message: { ru: 'Транзакция не найдена', en: 'Transaction not found' } },
+      error: { code: -31003, message: msg('Транзакция не найдена', 'Transaction not found', 'Tranzaksiya topilmadi') },
       id,
     });
   }
@@ -239,7 +248,7 @@ function CancelTransaction({ id: payme_id, reason }, id, res) {
 
   if (!pay) {
     return res.json({
-      error: { code: -31003, message: { ru: 'Транзакция не найдена', en: 'Transaction not found' } },
+      error: { code: -31003, message: msg('Транзакция не найдена', 'Transaction not found', 'Tranzaksiya topilmadi') },
       id,
     });
   }
@@ -265,7 +274,7 @@ function CheckTransaction({ id: payme_id }, id, res) {
 
   if (!pay) {
     return res.json({
-      error: { code: -31003, message: { ru: 'Транзакция не найдена', en: 'Transaction not found' } },
+      error: { code: -31003, message: msg('Транзакция не найдена', 'Transaction not found', 'Tranzaksiya topilmadi') },
       id,
     });
   }
