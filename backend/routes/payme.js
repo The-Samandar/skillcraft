@@ -119,6 +119,10 @@ function isPositiveInteger(value) {
   return Number.isInteger(n) && n > 0;
 }
 
+function normalizeStatus(status) {
+  return String(status || '').toLowerCase();
+}
+
 function getOrderOrAccountError(orderCode, res, id) {
   if (!orderCode) {
     respondError(
@@ -146,14 +150,43 @@ function getOrderOrAccountError(orderCode, res, id) {
   return order;
 }
 
-function getActivePendingPaymePayment(orderId) {
+function getOrderById(orderId) {
+  return db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+}
+
+function getPaymePaymentByProviderId(paymeId) {
   return db.prepare(
-    "SELECT * FROM payments WHERE order_id = ? AND provider = 'payme' AND status = 'pending' ORDER BY created_at DESC LIMIT 1"
-  ).get(orderId);
+    "SELECT * FROM payments WHERE provider_transaction_id = ? AND provider = 'payme' LIMIT 1"
+  ).get(paymeId);
+}
+
+function getPendingPaymePaymentsForOrder(order) {
+  const rows = db.prepare(
+    "SELECT * FROM payments WHERE provider = 'payme' AND status = 'pending' ORDER BY created_at DESC"
+  ).all();
+
+  return rows.filter((payment) => {
+    if (String(payment.order_id) === String(order.id)) return true;
+
+    const meta = readPaymentMeta(payment);
+    const metaOrderCode = getOrderCode(meta.account) || meta.order_code || meta.order || null;
+    if (metaOrderCode && String(metaOrderCode) === String(order.order_code)) return true;
+
+    return false;
+  });
+}
+
+function getActivePendingPaymePayment(order) {
+  const payments = getPendingPaymePaymentsForOrder(order);
+  if (!payments.length) return null;
+
+  const currentTs = nowMs();
+  const active = payments.find((payment) => currentTs - getPaymeTimeMs(payment) <= PAYME_TIMEOUT_MS);
+  return active || payments[0];
 }
 
 function isOrderBlocked(order) {
-  return ['paid', 'canceled', 'failed', 'cancelled'].includes(String(order.status || '').toLowerCase());
+  return ['paid', 'canceled', 'cancelled', 'failed'].includes(normalizeStatus(order.status));
 }
 
 function checkAmount(order, amount, res, id) {
@@ -169,6 +202,12 @@ function checkAmount(order, amount, res, id) {
   }
 
   return true;
+}
+
+function getPaymentState(payment) {
+  if (payment.status === 'success') return 2;
+  if (payment.status === 'failed') return getCancelState(payment);
+  return 1;
 }
 
 router.get('/checkout-url', (req, res) => {
@@ -221,21 +260,6 @@ function CheckPerformTransaction({ account, amount }, id, res) {
 
   if (!checkAmount(order, amount, res, id)) return;
 
-  const activePayment = getActivePendingPaymePayment(order.id);
-  if (activePayment) {
-    return respondError(
-      res,
-      id,
-      -31051,
-      msg(
-        'Платёж по этому заказу уже обрабатывается',
-        'Payment for this order is already being processed',
-        'Ushbu buyurtma bo\'yicha to\'lov allaqachon qayta ishlanmoqda'
-      ),
-      'account.order'
-    );
-  }
-
   if (isOrderBlocked(order)) {
     return respondError(
       res,
@@ -245,6 +269,21 @@ function CheckPerformTransaction({ account, amount }, id, res) {
         'Заказ недоступен для оплаты',
         'Order is not available for payment',
         'Buyurtmani to\'lash mumkin emas'
+      ),
+      'account.order'
+    );
+  }
+
+  const activePayment = getActivePendingPaymePayment(order);
+  if (activePayment) {
+    return respondError(
+      res,
+      id,
+      -31051,
+      msg(
+        'Платёж по этому заказу уже обрабатывается',
+        'Payment for this order is already being processed',
+        'Ushbu buyurtma bo\'yicha to\'lov allaqachon qayta ishlanmoqda'
       ),
       'account.order'
     );
@@ -260,42 +299,6 @@ function CreateTransaction({ id: paymeId, time, amount, account }, id, res) {
 
   if (!checkAmount(order, amount, res, id)) return;
 
-  const existingByProviderId = db.prepare(
-    "SELECT * FROM payments WHERE provider_transaction_id = ? AND provider = 'payme' LIMIT 1"
-  ).get(paymeId);
-
-  if (existingByProviderId) {
-    const state = existingByProviderId.status === 'success'
-      ? 2
-      : existingByProviderId.status === 'failed'
-        ? getCancelState(existingByProviderId)
-        : 1;
-
-    return res.json({
-      result: {
-        create_time: getPaymeTimeMs(existingByProviderId),
-        transaction: existingByProviderId.id,
-        state,
-      },
-      id,
-    });
-  }
-
-  const activePayment = getActivePendingPaymePayment(order.id);
-  if (activePayment) {
-    return respondError(
-      res,
-      id,
-      -31051,
-      msg(
-        'Платёж по этому заказу уже обрабатывается',
-        'Payment for this order is already being processed',
-        'Ushbu buyurtma bo\'yicha to\'lov allaqachon qayta ishlanmoqda'
-      ),
-      'account.order'
-    );
-  }
-
   if (isOrderBlocked(order)) {
     return respondError(
       res,
@@ -310,12 +313,40 @@ function CreateTransaction({ id: paymeId, time, amount, account }, id, res) {
     );
   }
 
+  const existingByProviderId = getPaymePaymentByProviderId(paymeId);
+  if (existingByProviderId) {
+    return res.json({
+      result: {
+        create_time: getPaymeTimeMs(existingByProviderId),
+        transaction: existingByProviderId.id,
+        state: getPaymentState(existingByProviderId),
+      },
+      id,
+    });
+  }
+
+  const activePayment = getActivePendingPaymePayment(order);
+  if (activePayment) {
+    return respondError(
+      res,
+      id,
+      -31051,
+      msg(
+        'Платёж по этому заказу уже обрабатывается',
+        'Payment for this order is already being processed',
+        'Ushbu buyurtma bo\'yicha to\'lov allaqachon qayta ishlanmoqda'
+      ),
+      'account.order'
+    );
+  }
+
   const paymentId = uuidv4();
   const meta = {
     id: paymeId,
     time: Number(time) || nowMs(),
     amount: Number(amount),
     account: account || {},
+    order_code: order.order_code,
     cancel_reason: null,
     cancel_state: null,
   };
@@ -337,9 +368,7 @@ function CreateTransaction({ id: paymeId, time, amount, account }, id, res) {
 }
 
 function PerformTransaction({ id: paymeId }, id, res) {
-  const payment = db.prepare(
-    "SELECT * FROM payments WHERE provider_transaction_id = ? AND provider = 'payme' LIMIT 1"
-  ).get(paymeId);
+  const payment = getPaymePaymentByProviderId(paymeId);
 
   if (!payment) {
     return respondError(res, id, -31003, msg('Транзакция не найдена', 'Transaction not found', 'Tranzaksiya topilmadi'));
@@ -381,7 +410,7 @@ function PerformTransaction({ id: paymeId }, id, res) {
     );
   }
 
-  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(payment.order_id);
+  const order = getOrderById(payment.order_id);
   if (!order) {
     return respondError(
       res,
@@ -392,7 +421,7 @@ function PerformTransaction({ id: paymeId }, id, res) {
     );
   }
 
-  if (isOrderBlocked(order) && String(order.status).toLowerCase() !== 'paid') {
+  if (isOrderBlocked(order) && normalizeStatus(order.status) !== 'paid') {
     return respondError(
       res,
       id,
@@ -420,9 +449,7 @@ function PerformTransaction({ id: paymeId }, id, res) {
 }
 
 function CancelTransaction({ id: paymeId, reason }, id, res) {
-  const payment = db.prepare(
-    "SELECT * FROM payments WHERE provider_transaction_id = ? AND provider = 'payme' LIMIT 1"
-  ).get(paymeId);
+  const payment = getPaymePaymentByProviderId(paymeId);
 
   if (!payment) {
     return respondError(res, id, -31003, msg('Транзакция не найдена', 'Transaction not found', 'Tranzaksiya topilmadi'));
@@ -462,19 +489,11 @@ function CancelTransaction({ id: paymeId, reason }, id, res) {
 }
 
 function CheckTransaction({ id: paymeId }, id, res) {
-  const payment = db.prepare(
-    "SELECT * FROM payments WHERE provider_transaction_id = ? AND provider = 'payme' LIMIT 1"
-  ).get(paymeId);
+  const payment = getPaymePaymentByProviderId(paymeId);
 
   if (!payment) {
     return respondError(res, id, -31003, msg('Транзакция не найдена', 'Transaction not found', 'Tranzaksiya topilmadi'));
   }
-
-  const state = payment.status === 'success'
-    ? 2
-    : payment.status === 'failed'
-      ? getCancelState(payment)
-      : 1;
 
   return res.json({
     result: {
@@ -482,7 +501,7 @@ function CheckTransaction({ id: paymeId }, id, res) {
       perform_time: payment.status === 'success' ? new Date(payment.updated_at || payment.created_at).getTime() : 0,
       cancel_time: payment.status === 'failed' ? new Date(payment.updated_at || payment.created_at).getTime() : 0,
       transaction: payment.id,
-      state,
+      state: getPaymentState(payment),
       reason: payment.status === 'failed' ? getCancelReason(payment) : null,
     },
     id,
@@ -500,12 +519,6 @@ function GetStatement({ from, to }, id, res) {
     result: {
       transactions: payments.map((payment) => {
         const meta = readPaymentMeta(payment);
-        const state = payment.status === 'success'
-          ? 2
-          : payment.status === 'failed'
-            ? getCancelState(payment)
-            : 1;
-
         return {
           id: payment.provider_transaction_id,
           time: Number(meta.time) || new Date(payment.created_at).getTime(),
@@ -517,7 +530,7 @@ function GetStatement({ from, to }, id, res) {
           perform_time: payment.status === 'success' ? new Date(payment.updated_at || payment.created_at).getTime() : 0,
           cancel_time: payment.status === 'failed' ? new Date(payment.updated_at || payment.created_at).getTime() : 0,
           transaction: payment.id,
-          state,
+          state: getPaymentState(payment),
           reason: payment.status === 'failed' ? getCancelReason(payment) : null,
         };
       }),
