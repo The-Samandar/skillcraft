@@ -1,9 +1,13 @@
+// routes/payme.js — Payme Merchant API (JSON-RPC 2.0)
+// Документация: https://developer.help.paycom.uz/
+
 const router = require('express').Router();
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/init');
 const { grantCourseAccess } = require('../services/accessService');
 
-//АВТОРИЗАЦИЯ 
+// ─── АВТОРИЗАЦИЯ ─────────────────────────────────────────────
+// Payme шлёт Basic Auth: login = Merchant ID, password = Secret Key
 function verifyAuth(req) {
   const h = req.headers.authorization || '';
   if (!h.startsWith('Basic ')) {
@@ -22,7 +26,7 @@ function verifyAuth(req) {
 
   console.log(`🔑 Payme auth: login="${login}", mid="${mid}"`);
 
-  // Dev режим
+  // Dev режим — ключи не заданы
   if (!mid || mid === 'YOUR_PAYME_MERCHANT_ID') return true;
 
   // Принимаем и тестовый и боевой ключ
@@ -31,12 +35,13 @@ function verifyAuth(req) {
   return ok;
 }
 
-// ПОЛУЧИТЬ ORDER_CODE
+// ─── ПОЛУЧИТЬ ORDER_CODE ──────────────────────────────────────
+// Payme может передавать как account.order так и account.order_code
 function getOrderCode(account) {
   return account?.order_code || account?.order || null;
 }
 
-// CHECKOUT URL 
+// ─── CHECKOUT URL ─────────────────────────────────────────────
 router.get('/checkout-url', (req, res) => {
   const { orderId } = req.query;
   if (!orderId) return res.status(400).json({ error: 'orderId required' });
@@ -48,7 +53,7 @@ router.get('/checkout-url', (req, res) => {
   if (!mid || mid === 'YOUR_PAYME_MERCHANT_ID')
     return res.status(500).json({ error: 'Payme не настроен' });
 
-  // ac.order
+  // ac.order — передаём order_code как параметр order
   const params  = `m=${mid};ac.order=${order.order_code};a=${order.amount};l=ru`;
   const encoded = Buffer.from(params).toString('base64');
   const base    = process.env.NODE_ENV === 'production'
@@ -58,8 +63,9 @@ router.get('/checkout-url', (req, res) => {
   res.json({ checkout_url: `${base}/${encoded}` });
 });
 
-// CALLBACK 
+// ─── CALLBACK (все JSON-RPC методы) ──────────────────────────
 router.post('/callback', (req, res) => {
+  // Проверка авторизации
   if (!verifyAuth(req)) {
     return res.json({
       error: { code: -32504, message: 'Forbidden' },
@@ -87,7 +93,8 @@ router.post('/callback', (req, res) => {
   });
 });
 
-// CheckPerformTransaction
+// ─── CheckPerformTransaction ──────────────────────────────────
+// Payme проверяет: можно ли создать транзакцию?
 function CheckPerformTransaction({ account, amount }, id, res) {
   const orderCode = getOrderCode(account);
 
@@ -114,7 +121,7 @@ function CheckPerformTransaction({ account, amount }, id, res) {
     });
   }
 
- 
+  // Сумма в тийинах должна совпадать
   if (order.amount !== parseInt(amount)) {
     console.log(`❌ Сумма не совпадает: order.amount=${order.amount}, payme.amount=${amount}`);
     return res.json({
@@ -126,7 +133,7 @@ function CheckPerformTransaction({ account, amount }, id, res) {
   return res.json({ result: { allow: true }, id });
 }
 
-// CreateTransaction 
+// ─── CreateTransaction ────────────────────────────────────────
 function CreateTransaction({ id: payme_id, time, amount, account }, id, res) {
   const orderCode = getOrderCode(account);
   const order = db.prepare('SELECT * FROM orders WHERE order_code = ?').get(String(orderCode));
@@ -145,6 +152,7 @@ function CreateTransaction({ id: payme_id, time, amount, account }, id, res) {
     });
   }
 
+  // Проверяем существующую транзакцию
   const existing = db.prepare(
     "SELECT * FROM payments WHERE provider_transaction_id = ? AND provider = 'payme'"
   ).get(payme_id);
@@ -180,7 +188,7 @@ function CreateTransaction({ id: payme_id, time, amount, account }, id, res) {
   });
 }
 
-// PerformTransaction
+// ─── PerformTransaction ───────────────────────────────────────
 function PerformTransaction({ id: payme_id }, id, res) {
   const pay = db.prepare(
     "SELECT * FROM payments WHERE provider_transaction_id = ? AND provider = 'payme'"
@@ -219,7 +227,7 @@ function PerformTransaction({ id: payme_id }, id, res) {
   });
 }
 
-//  CancelTransaction 
+// ─── CancelTransaction ────────────────────────────────────────
 function CancelTransaction({ id: payme_id, reason }, id, res) {
   const pay = db.prepare(
     "SELECT * FROM payments WHERE provider_transaction_id = ? AND provider = 'payme'"
@@ -245,7 +253,7 @@ function CancelTransaction({ id: payme_id, reason }, id, res) {
   });
 }
 
-//  CheckTransaction 
+// ─── CheckTransaction ─────────────────────────────────────────
 function CheckTransaction({ id: payme_id }, id, res) {
   const pay = db.prepare(
     "SELECT * FROM payments WHERE provider_transaction_id = ? AND provider = 'payme'"
@@ -273,7 +281,7 @@ function CheckTransaction({ id: payme_id }, id, res) {
   });
 }
 
-// GetStatement 
+// ─── GetStatement ─────────────────────────────────────────────
 function GetStatement({ from, to }, id, res) {
   const pays = db.prepare(
     "SELECT * FROM payments WHERE provider='payme' AND created_at BETWEEN ? AND ?"
