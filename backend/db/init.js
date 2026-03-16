@@ -83,7 +83,7 @@ async function initDatabase() {
   _db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
-      email TEXT UNIQUE NOT NULL,
+      phone TEXT UNIQUE NOT NULL,
       created_at DATETIME DEFAULT (datetime('now'))
     );
     CREATE TABLE IF NOT EXISTS orders (

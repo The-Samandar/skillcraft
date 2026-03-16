@@ -941,7 +941,7 @@
 
     <div class="sc-modal-header">
       <div class="sc-modal-tag">Оформление покупки</div>
-      <h2 class="sc-modal-title" id="scModalTitle">Введите ваш email</h2>
+      <h2 class="sc-modal-title" id="scModalTitle">Введите ваш номер телефона</h2>
       <button class="sc-modal-close" id="scModalClose" aria-label="Закрыть">✕</button>
     </div>
 
@@ -955,16 +955,16 @@
     <!-- ШАГ 1: EMAIL -->
     <div class="sc-step" id="scStep1">
       <p class="sc-email-label">
-        Введите email — на него будет привязан доступ к урокам.<br>
-        После оплаты войдёте по этому email.
+        Введите номер телефона — на него будет привязан доступ к урокам.<br>
+        После оплаты войдёте по этому номеру.
       </p>
-      <div class="sc-field-label">Email</div>
+      <div class="sc-field-label">Телефон</div>
       <input
-        type="email"
+        type="tel"
         class="sc-input"
-        id="scEmailInput"
-        placeholder="your@email.com"
-        autocomplete="email"
+        id="scPhoneInput"
+        placeholder="+998 90 123 45 67"
+        autocomplete="tel"
       />
       <div class="sc-error" id="scStep1Error"></div>
       <button class="sc-btn-next" id="scStep1Next">Выбрать способ оплаты →</button>
@@ -1006,7 +1006,7 @@
 
       <div class="sc-error" id="scStep2Error"></div>
 
-      <button class="sc-back" id="scStep2Back">← Изменить email</button>
+      <button class="sc-back" id="scStep2Back">← Изменить номер</button>
     </div>
 
     <!-- ШАГ 3: РЕДИРЕКТ -->
@@ -1047,7 +1047,7 @@
   const dot2 = document.getElementById('scDot2');
   const dot3 = document.getElementById('scDot3');
 
-  const emailInput   = document.getElementById('scEmailInput');
+  const phoneInput   = document.getElementById('scPhoneInput');
   const step1Next    = document.getElementById('scStep1Next');
   const step1Error   = document.getElementById('scStep1Error');
 
@@ -1065,7 +1065,7 @@
     overlay.classList.add('active');
     document.body.style.overflow = 'hidden';
     showStep(1);
-    emailInput.focus();
+    phoneInput.focus();
   }
 
   function closeModal() {
@@ -1075,7 +1075,7 @@
   }
 
   function resetModal() {
-    emailInput.value = '';
+    phoneInput.value = '';
     selectedProvider = null;
     currentOrderId   = null;
     hideError(step1Error);
@@ -1094,7 +1094,7 @@
     dot2.classList.toggle('active', n >= 2);
     dot3.classList.toggle('active', n >= 3);
 
-    const titles = { 1: 'Введите ваш email', 2: 'Выберите способ оплаты', 3: 'Перенаправляем…' };
+    const titles = { 1: 'Введите ваш номер телефона', 2: 'Выберите способ оплаты', 3: 'Перенаправляем…' };
     modalTitle.textContent = titles[n];
   }
 
@@ -1118,15 +1118,15 @@
   // ─── ШАГ 1: ПЕРЕХОД К ВЫБОРУ ПРОВАЙДЕРА ───
   step1Next.addEventListener('click', () => {
     hideError(step1Error);
-    const email = emailInput.value.trim();
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      showError(step1Error, 'Введите корректный email');
+    const phone = phoneInput.value.trim();
+    if (!phone || phone.length < 9) {
+      showError(step1Error, 'Введите корректный номер телефона');
       return;
     }
     showStep(2);
   });
 
-  emailInput.addEventListener('keydown', (e) => {
+  phoneInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') step1Next.click();
   });
 
@@ -1143,7 +1143,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: emailInput.value.trim(),
+          phone: phoneInput.value.trim(),
           provider: provider === 'click_card' ? 'click' : provider,
         }),
       });
@@ -1156,7 +1156,7 @@
       const { order } = await orderRes.json();
       currentOrderId = order.id;
       localStorage.setItem('sc_order_id', order.id);
-      localStorage.setItem('sc_email', emailInput.value.trim());
+      localStorage.setItem('sc_phone', phoneInput.value.trim());
 
       let checkoutEndpoint;
       if (provider === 'click') {

@@ -6,8 +6,8 @@ const { checkAccess } = require('../services/accessService');
 
 // POST /api/access/token — { email } или { orderId }
 router.post('/token', (req, res) => {
-  const { email, orderId } = req.body;
-  if (!email && !orderId) return res.status(400).json({ error: 'email или orderId обязателен' });
+  const { phone, orderId } = req.body;
+  if (!phone && !orderId) return res.status(400).json({ error: 'email или orderId обязателен' });
 
   let order, user;
 
@@ -15,17 +15,17 @@ router.post('/token', (req, res) => {
     order = db.prepare("SELECT * FROM orders WHERE id = ? AND status = 'paid'").get(orderId);
     if (order?.user_id) user = db.prepare('SELECT * FROM users WHERE id = ?').get(order.user_id);
   } else {
-    user  = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    user  = db.prepare('SELECT * FROM users WHERE phone = ?').get(email);
     if (user) order = db.prepare("SELECT * FROM orders WHERE user_id = ? AND status = 'paid' ORDER BY created_at DESC LIMIT 1").get(user.id);
   }
 
-  if (!order) return res.status(403).json({ error: 'Оплаченный заказ не найден. Проверьте email.' });
+  if (!order) return res.status(403).json({ error: 'Оплаченный заказ не найден. Проверьте номер телефона.' });
 
   const grant = checkAccess(order.id);
   if (!grant) return res.status(403).json({ error: 'Доступ не найден. Напишите нам если вы оплатили.' });
 
-  const token = generateToken({ userId: user?.id, email: user?.email, orderId: order.id, grantId: grant.id });
-  res.json({ success: true, token, email: user?.email, orderId: order.id });
+  const token = generateToken({ userId: user?.id, phone: user?.phone, orderId: order.id, grantId: grant.id });
+  res.json({ success: true, token, phone: user?.phone, orderId: order.id });
 });
 
 // GET /api/access/verify

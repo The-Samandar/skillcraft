@@ -5,9 +5,9 @@ const { db } = require('../db/init');
 
 // POST /api/orders — создать заказ
 router.post('/', (req, res) => {
-  const { email, provider } = req.body;
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-    return res.status(400).json({ error: 'Укажите корректный email' });
+  const { phone, provider } = req.body;
+  if (!phone || phone.length < 9)
+    return res.status(400).json({ error: 'Укажите корректный номер телефона' });
   if (!['click', 'payme'].includes(provider))
     return res.status(400).json({ error: 'Провайдер: click или payme' });
 
@@ -15,10 +15,10 @@ router.post('/', (req, res) => {
   const amount = parseInt(process.env.COURSE_PRICE_TIYIN) || 9900000;
 
   try {
-    let user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    let user = db.prepare('SELECT * FROM users WHERE phone = ?').get(phone);
     if (!user) {
       const uid = uuidv4();
-      db.prepare('INSERT INTO users (id,email) VALUES (?,?)').run(uid, email);
+      db.prepare('INSERT INTO users (id,phone) VALUES (?,?)').run(uid, phone);
       user = db.prepare('SELECT * FROM users WHERE id = ?').get(uid);
     }
 
