@@ -29,9 +29,13 @@ function verifyAuth(req) {
   // Dev режим — ключи не заданы
   if (!mid || mid === 'YOUR_PAYME_MERCHANT_ID') return true;
 
-  // Принимаем и тестовый и боевой ключ
-  const ok = (login === mid) && (pass === testKey || pass === liveKey);
-  if (!ok) console.log(`❌ Payme auth failed. pass="${pass}", testKey="${testKey}"`);
+  // В тестовой среде Payme присылает логин "Paycom"
+  // В боевой — присылает Merchant ID
+  const loginOk = (login === mid) || (login === 'Paycom');
+  const passOk  = (pass === testKey || pass === liveKey);
+
+  const ok = loginOk && passOk;
+  if (!ok) console.log(`❌ Payme auth failed. login="${login}", pass="${pass}", testKey="${testKey}"`);
   return ok;
 }
 
