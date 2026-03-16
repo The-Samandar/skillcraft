@@ -1,12 +1,16 @@
 // routes/payme.js — Payme Merchant API (JSON-RPC 2.0)
 // Документация: https://developer.help.paycom.uz/
+// Исправлено по официальной документации
 
 const router = require('express').Router();
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/init');
 const { grantCourseAccess } = require('../services/accessService');
 
-const PAYME_TIMEOUT_MS = 12 * 60 * 60 * 1000;
+// Таймаут: 12 часов = 43 200 000 мс (по документации Payme)
+const PAYME_TIMEOUT_MS = 43200000;
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
 
 function verifyAuth(req) {
   const h = req.headers.authorization || '';
@@ -26,10 +30,13 @@ function verifyAuth(req) {
 
   console.log(`🔑 Payme auth: login="${login}", mid="${mid}"`);
 
-  if (!mid || mid === 'YOUR_PAYME_MERCHANT_ID') return true;
+  if (!mid) {
+    console.log('❌ Payme auth: PAYME_MERCHANT_ID не задан в .env');
+    return false;
+  }
 
   const loginOk = login === mid || login === 'Paycom';
-  const passOk = pass === testKey || pass === liveKey;
+  const passOk = pass === testKey || (liveKey && pass === liveKey);
   const ok = loginOk && passOk;
 
   if (!ok) {
@@ -39,27 +46,18 @@ function verifyAuth(req) {
   return ok;
 }
 
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+
 function getOrderCode(account) {
   return account?.order_code || account?.order || null;
 }
 
 function msg(ru, en, uz) {
-  return {
-    ru,
-    en: en || ru,
-    uz: uz || ru,
-  };
+  return { ru, en: en || ru, uz: uz || ru };
 }
 
 function respondError(res, id, code, message, data) {
-  const payload = {
-    error: {
-      code,
-      message,
-    },
-    id,
-  };
-
+  const payload = { error: { code, message }, id };
   if (data !== undefined) payload.error.data = data;
   return res.json(payload);
 }
@@ -86,17 +84,14 @@ function readPaymentMeta(payment) {
 }
 
 function writePaymentMeta(payment, extra = {}) {
-  const meta = {
-    ...readPaymentMeta(payment),
-    ...extra,
-  };
-
+  const meta = { ...readPaymentMeta(payment), ...extra };
   db.prepare('UPDATE payments SET raw_payload = ?, updated_at = ? WHERE id = ?')
     .run(JSON.stringify(meta), nowIso(), payment.id);
-
   return meta;
 }
 
+// Время создания транзакции в системе Payme (поле time из CreateTransaction)
+// Используется в GetStatement для фильтрации по from/to
 function getPaymeTimeMs(payment) {
   const meta = readPaymentMeta(payment);
   const value = Number(meta.time || meta.create_time || 0);
@@ -126,10 +121,8 @@ function normalizeStatus(status) {
 function getOrderOrAccountError(orderCode, res, id) {
   if (!orderCode) {
     respondError(
-      res,
-      id,
-      -31050,
-      msg('Не указан номер заказа', 'Order is not specified', 'Buyurtma raqami ko\'rsatilmagan'),
+      res, id, -31050,
+      msg('Не указан номер заказа', 'Order is not specified', "Buyurtma raqami ko'rsatilmagan"),
       'account.order'
     );
     return null;
@@ -138,9 +131,7 @@ function getOrderOrAccountError(orderCode, res, id) {
   const order = db.prepare('SELECT * FROM orders WHERE order_code = ?').get(String(orderCode));
   if (!order) {
     respondError(
-      res,
-      id,
-      -31050,
+      res, id, -31050,
       msg('Заказ не найден', 'Order not found', 'Buyurtma topilmadi'),
       'account.order'
     );
@@ -167,11 +158,9 @@ function getPendingPaymePaymentsForOrder(order) {
 
   return rows.filter((payment) => {
     if (String(payment.order_id) === String(order.id)) return true;
-
     const meta = readPaymentMeta(payment);
     const metaOrderCode = getOrderCode(meta.account) || meta.order_code || meta.order || null;
     if (metaOrderCode && String(metaOrderCode) === String(order.order_code)) return true;
-
     return false;
   });
 }
@@ -179,10 +168,9 @@ function getPendingPaymePaymentsForOrder(order) {
 function getActivePendingPaymePayment(order) {
   const payments = getPendingPaymePaymentsForOrder(order);
   if (!payments.length) return null;
-
   const currentTs = nowMs();
-  const active = payments.find((payment) => currentTs - getPaymeTimeMs(payment) <= PAYME_TIMEOUT_MS);
-  return active || payments[0];
+  // Возвращаем только НЕ просроченный активный платёж
+  return payments.find((p) => currentTs - getPaymeTimeMs(p) <= PAYME_TIMEOUT_MS) || null;
 }
 
 function isOrderBlocked(order) {
@@ -194,13 +182,11 @@ function checkAmount(order, amount, res, id) {
     respondError(res, id, -31001, msg('Неверная сумма', 'Incorrect amount', "Noto'g'ri summa"));
     return false;
   }
-
   if (Number(order.amount) !== Number(amount)) {
     console.log(`❌ Сумма не совпадает: order.amount=${order.amount}, payme.amount=${amount}`);
     respondError(res, id, -31001, msg('Неверная сумма', 'Incorrect amount', "Noto'g'ri summa"));
     return false;
   }
-
   return true;
 }
 
@@ -210,6 +196,8 @@ function getPaymentState(payment) {
   return 1;
 }
 
+// ─── CHECKOUT URL ─────────────────────────────────────────────────────────────
+
 router.get('/checkout-url', (req, res) => {
   const { orderId } = req.query;
   if (!orderId) return res.status(400).json({ error: 'orderId required' });
@@ -218,10 +206,9 @@ router.get('/checkout-url', (req, res) => {
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
   const mid = process.env.PAYME_MERCHANT_ID;
-  if (!mid || mid === 'YOUR_PAYME_MERCHANT_ID') {
-    return res.status(500).json({ error: 'Payme не настроен' });
-  }
+  if (!mid) return res.status(500).json({ error: 'Payme не настроен: нет PAYME_MERCHANT_ID' });
 
+  // ac.order — поле account, читается через getOrderCode как account.order
   const params = `m=${mid};ac.order=${order.order_code};a=${order.amount};l=ru`;
   const encoded = Buffer.from(params).toString('base64');
   const base = process.env.NODE_ENV === 'production'
@@ -231,9 +218,14 @@ router.get('/checkout-url', (req, res) => {
   return res.json({ checkout_url: `${base}/${encoded}` });
 });
 
+// ─── CALLBACK (JSON-RPC) ──────────────────────────────────────────────────────
+
 router.post('/callback', (req, res) => {
   if (!verifyAuth(req)) {
-    return respondError(res, req.body?.id ?? null, -32504, msg('Доступ запрещён', 'Forbidden', 'Ruxsat berilmagan'));
+    return respondError(
+      res, req.body?.id ?? null, -32504,
+      msg('Доступ запрещён', 'Forbidden', 'Ruxsat berilmagan')
+    );
   }
 
   const { method, params, id } = req.body || {};
@@ -253,6 +245,10 @@ router.post('/callback', (req, res) => {
   return respondError(res, id, -32601, msg('Метод не найден', 'Method not found', 'Metod topilmadi'));
 });
 
+// ─── RPC МЕТОДЫ ───────────────────────────────────────────────────────────────
+
+// CheckPerformTransaction — ТОЛЬКО проверка возможности оплаты
+// НЕ проверяет существующие транзакции — это задача CreateTransaction
 function CheckPerformTransaction({ account, amount }, id, res) {
   const orderCode = getOrderCode(account);
   const order = getOrderOrAccountError(orderCode, res, id);
@@ -260,30 +256,14 @@ function CheckPerformTransaction({ account, amount }, id, res) {
 
   if (!checkAmount(order, amount, res, id)) return;
 
+  // Заказ уже оплачен/отменён
   if (isOrderBlocked(order)) {
     return respondError(
-      res,
-      id,
-      -31052,
+      res, id, -31050,
       msg(
         'Заказ недоступен для оплаты',
         'Order is not available for payment',
-        'Buyurtmani to\'lash mumkin emas'
-      ),
-      'account.order'
-    );
-  }
-
-  const activePayment = getActivePendingPaymePayment(order);
-  if (activePayment) {
-    return respondError(
-      res,
-      id,
-      -31051,
-      msg(
-        'Платёж по этому заказу уже обрабатывается',
-        'Payment for this order is already being processed',
-        'Ushbu buyurtma bo\'yicha to\'lov allaqachon qayta ishlanmoqda'
+        "Buyurtmani to'lash mumkin emas"
       ),
       'account.order'
     );
@@ -299,22 +279,17 @@ function CreateTransaction({ id: paymeId, time, amount, account }, id, res) {
 
   if (!checkAmount(order, amount, res, id)) return;
 
-  if (isOrderBlocked(order)) {
-    return respondError(
-      res,
-      id,
-      -31052,
-      msg(
-        'Заказ недоступен для оплаты',
-        'Order is not available for payment',
-        'Buyurtmani to\'lash mumkin emas'
-      ),
-      'account.order'
-    );
-  }
-
+  // Транзакция с таким paymeId уже существует — идемпотентный ответ
   const existingByProviderId = getPaymePaymentByProviderId(paymeId);
   if (existingByProviderId) {
+    // Если транзакция отменена — нельзя переиспользовать
+    if (existingByProviderId.status === 'failed') {
+      return respondError(
+        res, id, -31008,
+        msg('Невозможно выполнить операцию', 'Unable to perform operation', "Amalni bajarib bo'lmaydi")
+      );
+    }
+    // Возвращаем существующую транзакцию
     return res.json({
       result: {
         create_time: getPaymeTimeMs(existingByProviderId),
@@ -325,25 +300,29 @@ function CreateTransaction({ id: paymeId, time, amount, account }, id, res) {
     });
   }
 
+  // Заказ заблокирован — нельзя создать транзакцию
+  if (isOrderBlocked(order)) {
+    return respondError(
+      res, id, -31008,
+      msg('Невозможно выполнить операцию', 'Unable to perform operation', "Amalni bajarib bo'lmaydi")
+    );
+  }
+
+  // ИСПРАВЛЕНО: по документации, если уже есть активный pending платёж
+  // с другим paymeId — возвращаем -31008 (НЕ -31051, которого нет в документации!)
   const activePayment = getActivePendingPaymePayment(order);
   if (activePayment) {
     return respondError(
-      res,
-      id,
-      -31051,
-      msg(
-        'Платёж по этому заказу уже обрабатывается',
-        'Payment for this order is already being processed',
-        'Ushbu buyurtma bo\'yicha to\'lov allaqachon qayta ishlanmoqda'
-      ),
-      'account.order'
+      res, id, -31008,
+      msg('Невозможно выполнить операцию', 'Unable to perform operation', "Amalni bajarib bo'lmaydi")
     );
   }
 
   const paymentId = uuidv4();
+  const createTime = Number(time) || nowMs();
   const meta = {
     id: paymeId,
-    time: Number(time) || nowMs(),
+    time: createTime,       // ← Время от Payme. Используется в GetStatement
     amount: Number(amount),
     account: account || {},
     order_code: order.order_code,
@@ -359,7 +338,7 @@ function CreateTransaction({ id: paymeId, time, amount, account }, id, res) {
 
   return res.json({
     result: {
-      create_time: Number(time) || nowMs(),
+      create_time: createTime,
       transaction: paymentId,
       state: 1,
     },
@@ -374,6 +353,7 @@ function PerformTransaction({ id: paymeId }, id, res) {
     return respondError(res, id, -31003, msg('Транзакция не найдена', 'Transaction not found', 'Tranzaksiya topilmadi'));
   }
 
+  // Уже выполнена — идемпотентный ответ (повторный вызов = тот же ответ)
   if (payment.status === 'success') {
     return res.json({
       result: {
@@ -385,15 +365,15 @@ function PerformTransaction({ id: paymeId }, id, res) {
     });
   }
 
+  // Отменена — нельзя выполнить
   if (payment.status === 'failed') {
     return respondError(
-      res,
-      id,
-      -31008,
-      msg('Невозможно выполнить операцию', 'Unable to perform operation', 'Amalni bajarib bo\'lmaydi')
+      res, id, -31008,
+      msg('Невозможно выполнить операцию', 'Unable to perform operation', "Amalni bajarib bo'lmaydi")
     );
   }
 
+  // Таймаут — отменяем с причиной 4 (таймаут по документации)
   const createdMs = getPaymeTimeMs(payment);
   if (nowMs() - createdMs > PAYME_TIMEOUT_MS) {
     const cancelTime = nowMs();
@@ -401,32 +381,30 @@ function PerformTransaction({ id: paymeId }, id, res) {
     db.prepare("UPDATE payments SET status = 'failed', updated_at = ? WHERE id = ?").run(cancelIso, payment.id);
     writePaymentMeta(payment, { cancel_reason: 4, cancel_state: -1, cancel_time: cancelTime });
     db.prepare("UPDATE orders SET status = 'failed', updated_at = ? WHERE id = ?").run(cancelIso, payment.order_id);
+    console.log(`⏱️ Payme PerformTransaction: таймаут`);
 
     return respondError(
-      res,
-      id,
-      -31008,
-      msg('Невозможно выполнить операцию', 'Unable to perform operation', 'Amalni bajarib bo\'lmaydi')
+      res, id, -31008,
+      msg('Невозможно выполнить операцию', 'Unable to perform operation', "Amalni bajarib bo'lmaydi")
     );
   }
 
   const order = getOrderById(payment.order_id);
   if (!order) {
     return respondError(
-      res,
-      id,
-      -31050,
+      res, id, -31050,
       msg('Заказ не найден', 'Order not found', 'Buyurtma topilmadi'),
       'account.order'
     );
   }
 
-  if (isOrderBlocked(order) && normalizeStatus(order.status) !== 'paid') {
+  const status = normalizeStatus(order.status);
+
+  // Заказ отменён или провален — нельзя выполнить
+  if (['canceled', 'cancelled', 'failed'].includes(status)) {
     return respondError(
-      res,
-      id,
-      -31008,
-      msg('Невозможно выполнить операцию', 'Unable to perform operation', 'Amalni bajarib bo\'lmaydi')
+      res, id, -31008,
+      msg('Невозможно выполнить операцию', 'Unable to perform operation', "Amalni bajarib bo'lmaydi")
     );
   }
 
@@ -435,7 +413,13 @@ function PerformTransaction({ id: paymeId }, id, res) {
   db.prepare("UPDATE payments SET status = 'success', updated_at = ? WHERE id = ?").run(performIso, payment.id);
   db.prepare("UPDATE orders SET status = 'paid', updated_at = ? WHERE id = ?").run(performIso, payment.order_id);
 
-  grantCourseAccess(order.id, order.user_id);
+  try {
+    grantCourseAccess(order.id, order.user_id);
+  } catch (e) {
+    console.error('❌ grantCourseAccess error:', e);
+    // Платёж уже записан как успешный — не падаем
+  }
+
   console.log(`✅✅ Payme PerformTransaction SUCCESS: order=${payment.order_id}`);
 
   return res.json({
@@ -455,6 +439,7 @@ function CancelTransaction({ id: paymeId, reason }, id, res) {
     return respondError(res, id, -31003, msg('Транзакция не найдена', 'Transaction not found', 'Tranzaksiya topilmadi'));
   }
 
+  // Уже отменена — идемпотентный ответ
   if (payment.status === 'failed') {
     return res.json({
       result: {
@@ -466,6 +451,21 @@ function CancelTransaction({ id: paymeId, reason }, id, res) {
     });
   }
 
+  // Если транзакция выполнена (state=2) и хочешь запретить возврат —
+  // раскомментируй блок ниже и верни -31007:
+  /*
+  if (payment.status === 'success') {
+    return respondError(
+      res, id, -31007,
+      msg(
+        'Невозможно отменить. Услуга предоставлена.',
+        'Cannot cancel. Service already provided.',
+        "Bekor qilib bo'lmaydi. Xizmat taqdim etilgan."
+      )
+    );
+  }
+  */
+
   const cancelTime = nowMs();
   const cancelIso = new Date(cancelTime).toISOString();
   const wasPerformed = payment.status === 'success';
@@ -474,9 +474,13 @@ function CancelTransaction({ id: paymeId, reason }, id, res) {
   db.prepare("UPDATE payments SET status = 'failed', updated_at = ? WHERE id = ?").run(cancelIso, payment.id);
   db.prepare("UPDATE orders SET status = 'canceled', updated_at = ? WHERE id = ?").run(cancelIso, payment.order_id);
   db.prepare('UPDATE access_grants SET is_active = 0 WHERE order_id = ?').run(payment.order_id);
-  writePaymentMeta(payment, { cancel_reason: reason ?? null, cancel_state: cancelState, cancel_time: cancelTime });
+  writePaymentMeta(payment, {
+    cancel_reason: reason ?? null,
+    cancel_state: cancelState,
+    cancel_time: cancelTime,
+  });
 
-  console.log(`❌ Payme CancelTransaction: ${paymeId}, reason=${reason}`);
+  console.log(`❌ Payme CancelTransaction: ${paymeId}, reason=${reason}, state=${cancelState}`);
 
   return res.json({
     result: {
@@ -498,8 +502,12 @@ function CheckTransaction({ id: paymeId }, id, res) {
   return res.json({
     result: {
       create_time: getPaymeTimeMs(payment),
-      perform_time: payment.status === 'success' ? new Date(payment.updated_at || payment.created_at).getTime() : 0,
-      cancel_time: payment.status === 'failed' ? new Date(payment.updated_at || payment.created_at).getTime() : 0,
+      perform_time: payment.status === 'success'
+        ? new Date(payment.updated_at || payment.created_at).getTime()
+        : 0,
+      cancel_time: payment.status === 'failed'
+        ? new Date(payment.updated_at || payment.created_at).getTime()
+        : 0,
       transaction: payment.id,
       state: getPaymentState(payment),
       reason: payment.status === 'failed' ? getCancelReason(payment) : null,
@@ -508,27 +516,48 @@ function CheckTransaction({ id: paymeId }, id, res) {
   });
 }
 
+// ИСПРАВЛЕНО: GetStatement фильтрует по полю `time` из meta (timestamp Payme)
+// По документации: from <= time <= to
+// time — это время создания транзакции в системе Payme, которое передаёт CreateTransaction
 function GetStatement({ from, to }, id, res) {
-  const fromIso = new Date(Number(from)).toISOString();
-  const toIso = new Date(Number(to)).toISOString();
-  const payments = db.prepare(
-    "SELECT * FROM payments WHERE provider = 'payme' AND created_at >= ? AND created_at <= ? ORDER BY created_at ASC"
-  ).all(fromIso, toIso);
+  const fromMs = Number(from);
+  const toMs = Number(to);
+
+  if (!fromMs || !toMs || fromMs <= 0 || toMs <= 0) {
+    return respondError(
+      res, id, -31050,
+      msg('Неверный диапазон дат', 'Invalid date range', "Noto'g'ri sana oralig'i")
+    );
+  }
+
+  const allPayments = db.prepare(
+    "SELECT * FROM payments WHERE provider = 'payme' ORDER BY created_at ASC"
+  ).all();
+
+  // Фильтруем по полю time из meta (время Payme), не по created_at нашей БД
+  const filtered = allPayments.filter((payment) => {
+    const t = getPaymeTimeMs(payment);
+    return t >= fromMs && t <= toMs;
+  });
 
   return res.json({
     result: {
-      transactions: payments.map((payment) => {
+      transactions: filtered.map((payment) => {
         const meta = readPaymentMeta(payment);
         return {
           id: payment.provider_transaction_id,
-          time: Number(meta.time) || new Date(payment.created_at).getTime(),
+          time: getPaymeTimeMs(payment),
           amount: Number(payment.amount),
           account: {
             order: getOrderCode(meta.account) || meta.order_code || meta.order || null,
           },
           create_time: getPaymeTimeMs(payment),
-          perform_time: payment.status === 'success' ? new Date(payment.updated_at || payment.created_at).getTime() : 0,
-          cancel_time: payment.status === 'failed' ? new Date(payment.updated_at || payment.created_at).getTime() : 0,
+          perform_time: payment.status === 'success'
+            ? new Date(payment.updated_at || payment.created_at).getTime()
+            : 0,
+          cancel_time: payment.status === 'failed'
+            ? new Date(payment.updated_at || payment.created_at).getTime()
+            : 0,
           transaction: payment.id,
           state: getPaymentState(payment),
           reason: payment.status === 'failed' ? getCancelReason(payment) : null,
