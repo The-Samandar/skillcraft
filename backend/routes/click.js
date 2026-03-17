@@ -4,6 +4,10 @@ const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/init');
 const { grantCourseAccess } = require('../services/accessService');
 
+// =========================
+// CLICK CHECKOUT URL
+// =========================
+
 router.get('/checkout-url', (req, res) => {
   const { orderId } = req.query;
   if (!orderId) return res.status(400).json({ error: 'orderId required' });
@@ -11,23 +15,20 @@ router.get('/checkout-url', (req, res) => {
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
-  const amountUzs  = order.amount / 100;
-  const returnUrl  = process.env.CLICK_RETURN_URL || `${process.env.FRONTEND_URL}/success.html`;
+  const amountUzs = (Number(order.amount) / 100).toFixed(2);
+  const returnUrl =
+    process.env.CLICK_RETURN_URL || `${process.env.FRONTEND_URL}/success.html`;
 
   const url =
     `https://my.click.uz/services/pay` +
-    `?service_id=${process.env.CLICK_SERVICE_ID}` +
-    `&merchant_id=${process.env.CLICK_MERCHANT_ID}` +
-    `&amount=${amountUzs}` +
-    `&transaction_param=${order.order_code}` +
+    `?service_id=${encodeURIComponent(process.env.CLICK_SERVICE_ID || '')}` +
+    `&merchant_id=${encodeURIComponent(process.env.CLICK_MERCHANT_ID || '')}` +
+    `&amount=${encodeURIComponent(amountUzs)}` +
+    `&transaction_param=${encodeURIComponent(order.order_code)}` +
     `&return_url=${encodeURIComponent(returnUrl)}`;
 
-  res.json({ checkout_url: url });
+  return res.json({ checkout_url: url });
 });
-
-// GET /prepare и /complete — для проверки Click при сохранении URL в кабинете
-router.get('/prepare', (req, res) => res.json({ error: 0, error_note: 'Success' }));
-router.get('/complete', (req, res) => res.json({ error: 0, error_note: 'Success' }));
 
 router.get('/card-url', (req, res) => {
   const { orderId } = req.query;
@@ -36,26 +37,44 @@ router.get('/card-url', (req, res) => {
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
-  const amountUzs = order.amount / 100;
-  const returnUrl = process.env.CLICK_RETURN_URL || `${process.env.FRONTEND_URL}/success.html`;
+  const amountUzs = (Number(order.amount) / 100).toFixed(2);
+  const returnUrl =
+    process.env.CLICK_RETURN_URL || `${process.env.FRONTEND_URL}/success.html`;
 
-  // Ссылка для оплаты картой без регистрации в Click
   const url =
     `https://my.click.uz/pay-by-card` +
-    `?service_id=${process.env.CLICK_SERVICE_ID}` +
-    `&merchant_id=${process.env.CLICK_MERCHANT_ID}` +
-    `&amount=${amountUzs}` +
-    `&transaction_param=${order.order_code}` +
+    `?service_id=${encodeURIComponent(process.env.CLICK_SERVICE_ID || '')}` +
+    `&merchant_id=${encodeURIComponent(process.env.CLICK_MERCHANT_ID || '')}` +
+    `&amount=${encodeURIComponent(amountUzs)}` +
+    `&transaction_param=${encodeURIComponent(order.order_code)}` +
     `&return_url=${encodeURIComponent(returnUrl)}`;
 
-  res.json({ checkout_url: url });
+  return res.json({ checkout_url: url });
 });
-// GET /prepare и /complete — для проверки Click при сохранении URL в кабинете
-router.get('/prepare', (req, res) => res.json({ error: 0, error_note: 'Success' }));
-router.get('/complete', (req, res) => res.json({ error: 0, error_note: 'Success' }));
 
-function verifySign(body, action) {
-  const secret = process.env.CLICK_SECRET_KEY; 
+// =========================
+// CLICK URL CHECK FROM CABINET
+// =========================
+
+router.get('/prepare', (_req, res) => {
+  return res.json({ error: 0, error_note: 'Success' });
+});
+
+router.get('/complete', (_req, res) => {
+  return res.json({ error: 0, error_note: 'Success' });
+});
+
+// =========================
+// SIGN VERIFY
+// =========================
+
+function verifySign(body, fallbackAction) {
+  const secret = process.env.CLICK_SECRET_KEY;
+
+  if (!secret) {
+    console.error('❌ CLICK_SECRET_KEY is missing');
+    return false;
+  }
 
   const {
     click_trans_id,
@@ -63,28 +82,37 @@ function verifySign(body, action) {
     merchant_trans_id,
     merchant_prepare_id = '',
     amount,
+    action,
     sign_time,
     sign_string,
   } = body;
 
+  const realAction = Number(action ?? fallbackAction);
+
   let signStr;
-  if (parseInt(action) === 0) {
-    signStr = `${click_trans_id}${service_id}${secret}${merchant_trans_id}${amount}${action}${sign_time}`;
+  if (realAction === 0) {
+    signStr = `${click_trans_id}${service_id}${secret}${merchant_trans_id}${amount}${realAction}${sign_time}`;
   } else {
-    signStr = `${click_trans_id}${service_id}${secret}${merchant_trans_id}${merchant_prepare_id}${amount}${action}${sign_time}`;
+    signStr = `${click_trans_id}${service_id}${secret}${merchant_trans_id}${merchant_prepare_id}${amount}${realAction}${sign_time}`;
   }
 
   const expected = crypto.createHash('md5').update(signStr).digest('hex');
-  const valid = sign_string === expected;
+  const valid = String(sign_string || '') === expected;
 
   if (!valid) {
     console.error('❌ Click sign mismatch');
     console.error('   Expected:', expected);
     console.error('   Got:     ', sign_string);
+    console.error('   Action:  ', realAction);
+    console.error('   String:  ', signStr);
   }
 
   return valid;
 }
+
+// =========================
+// PREPARE
+// =========================
 
 router.post('/prepare', require('express').urlencoded({ extended: true }), (req, res) => {
   const {
@@ -92,46 +120,61 @@ router.post('/prepare', require('express').urlencoded({ extended: true }), (req,
     service_id,
     merchant_trans_id,
     amount,
-    action,
   } = req.body;
 
   console.log('📥 Click PREPARE:', { merchant_trans_id, amount, click_trans_id });
 
-  // проверка подписи
   if (!verifySign(req.body, 0)) {
     return res.json({ error: -1, error_note: 'SIGN CHECK FAILED!' });
   }
 
-  // проверяем service_id
   if (String(service_id) !== String(process.env.CLICK_SERVICE_ID)) {
     return res.json({ error: -6, error_note: 'Permission denied' });
   }
 
-  //  находим заказ по order_code
   const order = db.prepare('SELECT * FROM orders WHERE order_code = ?').get(merchant_trans_id);
   if (!order) {
     return res.json({ error: -5, error_note: 'User does not exist' });
   }
 
-  //  уже оплачен?
-  if (order.status === 'paid') {
+  if (String(order.status).toLowerCase() === 'paid') {
     return res.json({ error: -4, error_note: 'Already paid' });
   }
 
-  // проверяем сумму 
-  const expectedUzs = order.amount / 100;
-  if (Math.abs(parseFloat(amount) - expectedUzs) > 0.01) {
-    console.error(`❌ Amount mismatch: expected ${expectedUzs}, got ${amount}`);
+  const expectedUzs = (Number(order.amount) / 100).toFixed(2);
+  if (Number(amount).toFixed(2) !== expectedUzs) {
+    console.error(`❌ Amount mismatch in PREPARE: expected ${expectedUzs}, got ${amount}`);
     return res.json({ error: -2, error_note: 'Incorrect parameter amount' });
   }
 
-  // Создаём запись о платеже
-  const paymentId = uuidv4();
-  db.prepare(
-    "INSERT INTO payments (id,order_id,provider,provider_transaction_id,amount,raw_payload,status) VALUES (?,?,'click',?,?,?,'pending')"
-  ).run(paymentId, order.id, click_trans_id, order.amount, JSON.stringify(req.body));
+  // Идемпотентность: если уже есть pending payment для этого order + click_trans_id, вернём его
+  const existingPayment = db.prepare(
+    "SELECT * FROM payments WHERE order_id = ? AND provider = 'click' AND provider_transaction_id = ? LIMIT 1"
+  ).get(order.id, String(click_trans_id));
 
-  console.log(`✅ Click Prepare OK — order: ${merchant_trans_id}, payment: ${paymentId}`);
+  if (existingPayment) {
+    return res.json({
+      click_trans_id,
+      merchant_trans_id,
+      merchant_prepare_id: existingPayment.id,
+      error: 0,
+      error_note: 'Success',
+    });
+  }
+
+  const paymentId = uuidv4();
+
+  db.prepare(
+    "INSERT INTO payments (id, order_id, provider, provider_transaction_id, amount, raw_payload, status) VALUES (?, ?, 'click', ?, ?, ?, 'pending')"
+  ).run(
+    paymentId,
+    order.id,
+    String(click_trans_id),
+    Number(order.amount),
+    JSON.stringify(req.body)
+  );
+
+  console.log(`✅ Click PREPARE OK — order=${merchant_trans_id}, payment=${paymentId}`);
 
   return res.json({
     click_trans_id,
@@ -142,41 +185,62 @@ router.post('/prepare', require('express').urlencoded({ extended: true }), (req,
   });
 });
 
+// =========================
+// COMPLETE
+// =========================
+
 router.post('/complete', require('express').urlencoded({ extended: true }), (req, res) => {
   const {
     click_trans_id,
+    service_id,
     merchant_trans_id,
     merchant_prepare_id,
     amount,
     error: clickError,
   } = req.body;
 
-  console.log('📥 Click COMPLETE:', { merchant_trans_id, clickError, click_trans_id });
+  console.log('📥 Click COMPLETE:', {
+    merchant_trans_id,
+    merchant_prepare_id,
+    clickError,
+    click_trans_id,
+  });
 
-  // проверка подписи
   if (!verifySign(req.body, 1)) {
     return res.json({ error: -1, error_note: 'SIGN CHECK FAILED!' });
   }
 
-  // находим заказ
+  if (String(service_id) !== String(process.env.CLICK_SERVICE_ID)) {
+    return res.json({ error: -6, error_note: 'Permission denied' });
+  }
+
   const order = db.prepare('SELECT * FROM orders WHERE order_code = ?').get(merchant_trans_id);
   if (!order) {
     return res.json({ error: -5, error_note: 'User does not exist' });
   }
 
-  // находим payment из Prepare
+  const expectedUzs = (Number(order.amount) / 100).toFixed(2);
+  if (Number(amount).toFixed(2) !== expectedUzs) {
+    console.error(`❌ Amount mismatch in COMPLETE: expected ${expectedUzs}, got ${amount}`);
+    return res.json({ error: -2, error_note: 'Incorrect parameter amount' });
+  }
+
   const payment = db.prepare(
-    "SELECT * FROM payments WHERE id = ? AND provider = 'click'"
+    "SELECT * FROM payments WHERE id = ? AND provider = 'click' LIMIT 1"
   ).get(merchant_prepare_id);
+
   if (!payment) {
     return res.json({ error: -6, error_note: 'Transaction does not exist' });
   }
 
-  // оплата не прошла
-  if (parseInt(clickError) < 0) {
-    db.prepare("UPDATE orders SET status='failed' WHERE id=?").run(order.id);
-    db.prepare("UPDATE payments SET status='failed' WHERE id=?").run(payment.id);
+  // Если Click сообщает об ошибке оплаты
+  if (parseInt(clickError, 10) < 0) {
+    db.prepare("UPDATE orders SET status = 'failed', updated_at = datetime('now') WHERE id = ?").run(order.id);
+    db.prepare("UPDATE payments SET status = 'failed', updated_at = datetime('now'), raw_payload = ? WHERE id = ?")
+      .run(JSON.stringify(req.body), payment.id);
+
     console.log(`❌ Click payment FAILED: ${merchant_trans_id}`);
+
     return res.json({
       click_trans_id,
       merchant_trans_id,
@@ -186,12 +250,27 @@ router.post('/complete', require('express').urlencoded({ extended: true }), (req
     });
   }
 
-  db.prepare("UPDATE orders SET status='paid' WHERE id=?").run(order.id);
-  db.prepare(
-    "UPDATE payments SET status='success', provider_transaction_id=? WHERE id=?"
-  ).run(click_trans_id, payment.id);
+  // Если уже оплачен — возвращаем успешный идемпотентный ответ
+  if (String(order.status).toLowerCase() === 'paid') {
+    return res.json({
+      click_trans_id,
+      merchant_trans_id,
+      merchant_confirm_id: order.id,
+      error: 0,
+      error_note: 'Success',
+    });
+  }
 
-  grantCourseAccess(order.id, order.user_id);
+  db.prepare("UPDATE orders SET status = 'paid', updated_at = datetime('now') WHERE id = ?").run(order.id);
+  db.prepare(
+    "UPDATE payments SET status = 'success', provider_transaction_id = ?, raw_payload = ?, updated_at = datetime('now') WHERE id = ?"
+  ).run(String(click_trans_id), JSON.stringify(req.body), payment.id);
+
+  try {
+    grantCourseAccess(order.id, order.user_id);
+  } catch (e) {
+    console.error('❌ grantCourseAccess error:', e);
+  }
 
   console.log(`✅✅ Click payment SUCCESS: ${merchant_trans_id}`);
 
@@ -205,4 +284,3 @@ router.post('/complete', require('express').urlencoded({ extended: true }), (req
 });
 
 module.exports = router;
-
