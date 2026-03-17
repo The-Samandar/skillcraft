@@ -1116,13 +1116,41 @@
   });
 
   // ─── ШАГ 1: ПЕРЕХОД К ВЫБОРУ ПРОВАЙДЕРА ───
-  step1Next.addEventListener('click', () => {
+  // ✅ Сначала проверяем — уже оплатил? Если да — сразу на уроки
+  step1Next.addEventListener('click', async () => {
     hideError(step1Error);
     const phone = phoneInput.value.trim();
     if (!phone || phone.length < 9) {
       showError(step1Error, 'Введите корректный номер телефона');
       return;
     }
+
+    // Проверяем оплату по номеру телефона
+    step1Next.disabled = true;
+    step1Next.textContent = 'Проверяем…';
+
+    try {
+      const res = await fetch(`${API_URL}/api/access/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      if (data.token) {
+        // ✅ Уже оплатил — сохраняем токен и сразу на уроки!
+        localStorage.setItem('sc_token', data.token);
+        localStorage.setItem('sc_phone', phone);
+        window.location.href = '/lessons.html';
+        return;
+      }
+    } catch (e) {
+      // Ошибка сети — продолжаем к оплате
+    } finally {
+      step1Next.disabled = false;
+      step1Next.textContent = 'Далее →';
+    }
+
+    // Не оплатил — переходим к выбору способа оплаты
     showStep(2);
   });
 
