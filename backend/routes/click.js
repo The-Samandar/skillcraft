@@ -25,6 +25,10 @@ router.get('/checkout-url', (req, res) => {
   res.json({ checkout_url: url });
 });
 
+// GET /prepare и /complete — для проверки Click при сохранении URL в кабинете
+router.get('/prepare', (req, res) => res.json({ error: 0, error_note: 'Success' }));
+router.get('/complete', (req, res) => res.json({ error: 0, error_note: 'Success' }));
+
 router.get('/card-url', (req, res) => {
   const { orderId } = req.query;
   if (!orderId) return res.status(400).json({ error: 'orderId required' });
@@ -46,6 +50,9 @@ router.get('/card-url', (req, res) => {
 
   res.json({ checkout_url: url });
 });
+// GET /prepare и /complete — для проверки Click при сохранении URL в кабинете
+router.get('/prepare', (req, res) => res.json({ error: 0, error_note: 'Success' }));
+router.get('/complete', (req, res) => res.json({ error: 0, error_note: 'Success' }));
 
 function verifySign(body, action) {
   const secret = process.env.CLICK_SECRET_KEY; 
@@ -198,3 +205,4 @@ router.post('/complete', require('express').urlencoded({ extended: true }), (req
 });
 
 module.exports = router;
+
