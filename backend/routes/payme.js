@@ -339,8 +339,12 @@ function CreateTransaction({ id: paymeId, time, amount, account }, id, res) {
   const activePayment = getActivePendingPaymePayment(order);
   if (activePayment) {
     return respondError(
-      res, id, -31008,
-      msg('Невозможно выполнить операцию', 'Unable to perform operation', "Amalni bajarib bo'lmaydi")
+      res, id, -31051,   // ← СТАЛО
+      msg(
+       'Транзакция в обработке',
+       'Transaction is in progress',
+       'Tranzaksiya jarayonda'
+      )
     );
   }
 
