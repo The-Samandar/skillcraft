@@ -25,7 +25,6 @@ function verifyAuth(req) {
   const pass = decoded.slice(colonIdx + 1);
 
   const mid = process.env.PAYME_MERCHANT_ID;
-  const testKey = process.env.PAYME_TEST_KEY;
   const liveKey = process.env.PAYME_SECRET_KEY;
 
   console.log(`🔑 Payme auth: login="${login}", mid="${mid}"`);
@@ -35,8 +34,8 @@ function verifyAuth(req) {
     return false;
   }
 
-  const loginOk = login === mid || login === 'Paycom';
-  const passOk = pass === testKey || (liveKey && pass === liveKey);
+  const loginOk = login === mid;
+  const passOk = pass === liveKey;
   const ok = loginOk && passOk;
 
   if (!ok) {
@@ -211,9 +210,7 @@ router.get('/checkout-url', (req, res) => {
   // ac.order — поле account, читается через getOrderCode как account.order
   const params = `m=${mid};ac.order=${order.order_code};a=${order.amount};l=ru`;
   const encoded = Buffer.from(params).toString('base64');
-  const base = process.env.NODE_ENV === 'production'
-    ? 'https://checkout.paycom.uz'
-    : 'https://test.paycom.uz';
+  const base = 'https://checkout.paycom.uz';
 
   return res.json({ checkout_url: `${base}/${encoded}` });
 });
