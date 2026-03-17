@@ -36,7 +36,7 @@ function verifyAuth(req) {
   }
 
   const loginOk = login === mid || login === 'Paycom';
-  const passOk = pass === testKey || (liveKey && pass === liveKey);
+  const passOk = pass === liveKey || (liveKey && pass === liveKey);
   const ok = loginOk && passOk;
 
   if (!ok) {
