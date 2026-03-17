@@ -531,7 +531,7 @@ function CheckTransaction({ id: paymeId }, id, res) {
 
   return respondResult(res, id, {
     create_time:  getPaymeTimeMs(payment),
-    perform_time: state === 2  ? getPerformTimeMs(payment) : 0,
+    perform_time: (state === 2 || state === -2) ? getPerformTimeMs(payment) : 0,
     cancel_time:  state < 0   ? getCancelTimeMs(payment)  : 0,
     transaction:  payment.id,
     state,
@@ -578,7 +578,7 @@ function GetStatement({ from, to }, id, res) {
           order: getOrderCode(meta.account) || meta.order_code || meta.order || null,
         },
         create_time:  getPaymeTimeMs(payment),
-        perform_time: state === 2  ? getPerformTimeMs(payment) : 0,
+        perform_time: (state === 2 || state === -2) ? getPerformTimeMs(payment) : 0,
         cancel_time:  state < 0   ? getCancelTimeMs(payment)  : 0,
         transaction:  payment.id,                          // Наш внутренний ID
         state,
