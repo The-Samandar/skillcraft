@@ -223,7 +223,7 @@ router.get('/checkout-url', (req, res) => {
 
   const params = `m=${mid};ac.order=${order.order_code};a=${order.amount};l=ru`;
   const encoded = Buffer.from(params).toString('base64');
-  const base = process.env.NODE_ENV === 'production'
+  const base = process.env.PAYME_MODE === 'live'
     ? 'https://checkout.paycom.uz'
     : 'https://test.paycom.uz';
 
