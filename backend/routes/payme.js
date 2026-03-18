@@ -35,11 +35,8 @@ function verifyAuth(req) {
     return false;
   }
 
-  // ✅ Payme может слать логин как merchantId или как 'Paycom'
-  const loginOk = login === merchantId || login === 'Paycom';
-
-  // ✅ Принимаем и живой и тестовый ключ
-  const passOk = (secretKey && pass === secretKey) || (testKey && pass === testKey);
+  const loginOk = login === merchantId;
+  const passOk = secretKey && pass === secretKey;
 
   if (!loginOk || !passOk) {
     console.log(`❌ Payme auth failed. login="${login}"`);
