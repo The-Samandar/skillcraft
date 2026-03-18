@@ -26,6 +26,7 @@ function verifyAuth(req) {
 
   const merchantId = (process.env.PAYME_MERCHANT_ID || '').trim();
   const secretKey = (process.env.PAYME_SECRET_KEY || '').trim();
+  const testKey = (process.env.PAYME_TEST_KEY || '').trim();
 
   console.log(`🔑 Payme auth login="${login}"`);
 
@@ -34,16 +35,14 @@ function verifyAuth(req) {
     return false;
   }
 
-  if (!secretKey) {
-    console.log('❌ PAYME_SECRET_KEY не задан');
-    return false;
-  }
+  // ✅ Payme может слать логин как merchantId или как 'Paycom'
+  const loginOk = login === merchantId || login === 'Paycom';
 
-  const loginOk = login === merchantId;
-  const passOk = pass === secretKey;
+  // ✅ Принимаем и живой и тестовый ключ
+  const passOk = (secretKey && pass === secretKey) || (testKey && pass === testKey);
 
   if (!loginOk || !passOk) {
-    console.log('❌ Payme auth failed');
+    console.log(`❌ Payme auth failed. login="${login}"`);
     return false;
   }
 
