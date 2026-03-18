@@ -1,0 +1,61 @@
+  :root {
+    --black: #0a0a0a; --dark: #111214; --card: #16181c;
+    --border: #222428; --green: #22c55e; --green-muted: rgba(34,197,94,0.08);
+    --white: #f4f4f0; --muted: #8a8f9a; --accent: #a3e635;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--black); color: var(--white);
+    font-family: 'Mulish', sans-serif;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 40px 20px;
+  }
+  .card {
+    background: var(--dark); border: 1px solid var(--border);
+    max-width: 480px; width: 100%; padding: 48px 40px;
+    text-align: center;
+  }
+  .icon { font-size: 56px; margin-bottom: 24px; }
+  h1 { font-family: 'Unbounded', sans-serif; font-weight: 700; font-size: 22px; margin-bottom: 12px; }
+  .sub { font-size: 15px; color: var(--muted); line-height: 1.6; margin-bottom: 28px; }
+  .phone-badge {
+    background: var(--green-muted); border: 1px solid rgba(34,197,94,0.2);
+    padding: 12px 18px; font-size: 14px; color: #86efac;
+    margin-bottom: 28px; word-break: break-word;
+  }
+  .btn {
+    display: inline-block; background: var(--green); color: var(--black);
+    font-family: 'Unbounded', sans-serif; font-weight: 700;
+    font-size: 13px; letter-spacing: 0.05em; padding: 16px 36px;
+    text-decoration: none; cursor: pointer; border: none;
+    transition: all 0.2s; margin-bottom: 16px; width: 100%;
+  }
+  .btn:hover { background: var(--accent); transform: translateY(-1px); }
+  .btn-outline {
+    display: block; background: none; border: 1px solid var(--border);
+    color: var(--muted); font-family: 'Mulish', sans-serif;
+    font-size: 13px; padding: 14px 36px; cursor: pointer;
+    width: 100%; transition: border-color 0.15s;
+  }
+  .btn-outline:hover { border-color: var(--green); color: var(--white); }
+  .note { font-size: 12px; color: var(--muted); margin-top: 16px; line-height: 1.5; }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border); border-top-color: var(--green);
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+    margin: 0 auto 20px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .phone-form { margin-bottom: 20px; }
+  .phone-input {
+    width: 100%; background: var(--card); border: 1px solid var(--border);
+    color: var(--white); font-family: 'Mulish', sans-serif;
+    font-size: 14px; padding: 12px 14px; outline: none; margin-bottom: 12px;
+  }
+  .phone-input:focus { border-color: var(--green); }
+  .error {
+    background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+    color: #fca5a5; font-size: 13px; padding: 10px 14px; margin-bottom: 14px;
+    display: none;
+  }
+  .error.visible { display: block; }

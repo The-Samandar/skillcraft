@@ -1,10 +1,8 @@
-// routes/access.js — выдача JWT токена после оплаты
 const router = require('express').Router();
 const { db } = require('../db/init');
 const { requireAuth, generateToken } = require('../middleware/auth');
 const { checkAccess } = require('../services/accessService');
 
-// POST /api/access/token — { phone } или { orderId }
 router.post('/token', (req, res) => {
   const { phone, orderId } = req.body;
   if (!phone && !orderId) return res.status(400).json({ error: 'Номер телефона или orderId обязателен' });
@@ -30,7 +28,6 @@ router.post('/token', (req, res) => {
   res.json({ success: true, token, phone: user?.phone, orderId: order.id });
 });
 
-// GET /api/access/verify
 router.get('/verify', requireAuth, (req, res) => {
   const grant = db.prepare("SELECT * FROM access_grants WHERE id = ? AND is_active = 1").get(req.user.grantId);
   if (!grant) return res.status(403).json({ error: 'Доступ отозван' });

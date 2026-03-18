@@ -1,4 +1,3 @@
-// services/accessService.js — логика выдачи доступа к урокам
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/init');
 
@@ -18,7 +17,7 @@ function grantCourseAccess(orderId, userId) {
 }
 
 function checkAccess(phoneOrOrderId) {
-  // По orderId
+
   let grant = db.prepare(`
     SELECT ag.* FROM access_grants ag
     JOIN orders o ON o.id = ag.order_id

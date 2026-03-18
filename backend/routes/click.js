@@ -4,10 +4,6 @@ const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/init');
 const { grantCourseAccess } = require('../services/accessService');
 
-// =========================
-// CLICK CHECKOUT URL
-// =========================
-
 router.get('/checkout-url', (req, res) => {
   const { orderId } = req.query;
   if (!orderId) return res.status(400).json({ error: 'orderId required' });
@@ -52,10 +48,6 @@ router.get('/card-url', (req, res) => {
   return res.json({ checkout_url: url });
 });
 
-// =========================
-// CLICK URL CHECK FROM CABINET
-// =========================
-
 router.get('/prepare', (_req, res) => {
   return res.json({ error: 0, error_note: 'Success' });
 });
@@ -63,10 +55,6 @@ router.get('/prepare', (_req, res) => {
 router.get('/complete', (_req, res) => {
   return res.json({ error: 0, error_note: 'Success' });
 });
-
-// =========================
-// SIGN VERIFY
-// =========================
 
 function verifySign(body, fallbackAction) {
   const secret = process.env.CLICK_SECRET_KEY;
@@ -109,10 +97,6 @@ function verifySign(body, fallbackAction) {
 
   return valid;
 }
-
-// =========================
-// PREPARE
-// =========================
 
 router.post('/prepare', require('express').urlencoded({ extended: true }), (req, res) => {
   const {
@@ -185,10 +169,6 @@ router.post('/prepare', require('express').urlencoded({ extended: true }), (req,
   });
 });
 
-// =========================
-// COMPLETE
-// =========================
-
 router.post('/complete', require('express').urlencoded({ extended: true }), (req, res) => {
   const {
     click_trans_id,
@@ -250,7 +230,6 @@ router.post('/complete', require('express').urlencoded({ extended: true }), (req
     });
   }
 
-  // Если уже оплачен — возвращаем успешный идемпотентный ответ
   if (String(order.status).toLowerCase() === 'paid') {
     return res.json({
       click_trans_id,

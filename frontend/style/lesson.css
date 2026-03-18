@@ -166,3 +166,20 @@
     main { padding: 48px 16px; }
     .download-card { padding: 32px 20px; }
   }
+
+  /* Кнопка Telegram */
+.btn-telegram {
+  display: block; width: 100%;
+  background: #229ED9; color: #fff;
+  font-family: 'Unbounded', sans-serif; font-weight: 700;
+  font-size: 14px; letter-spacing: 0.05em;
+  padding: 18px; cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none; text-align: center;
+  margin-top: 12px;
+}
+.btn-telegram:hover {
+  background: #1a8bbf;
+  transform: translateY(-2px);
+  box-shadow: 0 16px 48px rgba(34,158,217,0.3);
+}

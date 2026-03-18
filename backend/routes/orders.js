@@ -1,9 +1,7 @@
-// routes/orders.js
 const router = require('express').Router();
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/init');
 
-// POST /api/orders — создать заказ
 router.post('/', (req, res) => {
   const { phone, provider } = req.body;
   if (!phone || phone.length < 9)
@@ -11,7 +9,6 @@ router.post('/', (req, res) => {
   if (!['click', 'payme'].includes(provider))
     return res.status(400).json({ error: 'Провайдер: click или payme' });
 
-  // ⬇️ ЦЕНА из .env (COURSE_PRICE_TIYIN)
   const amount = parseInt(process.env.COURSE_PRICE_TIYIN) || 9900000;
 
   try {
@@ -36,7 +33,6 @@ router.post('/', (req, res) => {
   }
 });
 
-// GET /api/orders/:id — статус заказа
 router.get('/:id', (req, res) => {
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Заказ не найден' });
