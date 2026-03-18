@@ -42,7 +42,7 @@ router.get('/card-url', (req, res) => {
     process.env.CLICK_RETURN_URL || `${process.env.FRONTEND_URL}/success.html`;
 
   const url =
-    `https://my.click.uz/pay-by-card` +
+    `https://my.click.uz/services/pay` +
     `?service_id=${encodeURIComponent(process.env.CLICK_SERVICE_ID || '')}` +
     `&merchant_id=${encodeURIComponent(process.env.CLICK_MERCHANT_ID || '')}` +
     `&amount=${encodeURIComponent(amountUzs)}` +
