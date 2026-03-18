@@ -7,6 +7,7 @@ const PAYME_TIMEOUT_MS = 43200000;
 // AUTH 
 function verifyAuth(req) {
   const h = req.headers.authorization || '';
+
   if (!h.startsWith('Basic ')) {
     console.log('❌ Payme auth: нет заголовка Authorization');
     return false;
@@ -14,27 +15,39 @@ function verifyAuth(req) {
 
   const decoded = Buffer.from(h.slice(6), 'base64').toString('utf8');
   const colonIdx = decoded.indexOf(':');
-  const login = decoded.slice(0, colonIdx);
-  const pass = decoded.slice(colonIdx + 1);
 
-  const mid = process.env.PAYME_MERCHANT_ID;
-  const testKey = process.env.PAYME_TEST_KEY;
-  const liveKey = process.env.PAYME_SECRET_KEY;
-
-  console.log(`🔑 Payme auth: login="${login}", mid="${mid}"`);
-
-  if (!mid) {
-    console.log('❌ Payme auth: PAYME_MERCHANT_ID не задан в .env');
+  if (colonIdx === -1) {
+    console.log('❌ Payme auth: неверный формат');
     return false;
   }
 
-  const loginOk = login === mid || login === 'Paycom';
-  const passOk = pass === testKey || (liveKey && pass === liveKey);
-  const ok = loginOk && passOk;
+  const login = decoded.slice(0, colonIdx).trim();
+  const pass = decoded.slice(colonIdx + 1).trim();
 
-  if (!ok) console.log(`❌ Payme auth failed. login="${login}"`);
+  const merchantId = (process.env.PAYME_MERCHANT_ID || '').trim();
+  const secretKey = (process.env.PAYME_SECRET_KEY || '').trim();
 
-  return ok;
+  console.log(`🔑 Payme auth login="${login}"`);
+
+  if (!merchantId) {
+    console.log('❌ PAYME_MERCHANT_ID не задан');
+    return false;
+  }
+
+  if (!secretKey) {
+    console.log('❌ PAYME_SECRET_KEY не задан');
+    return false;
+  }
+
+  const loginOk = login === merchantId;
+  const passOk = pass === secretKey;
+
+  if (!loginOk || !passOk) {
+    console.log('❌ Payme auth failed');
+    return false;
+  }
+
+  return true;
 }
 
 function getOrderCode(account) {
