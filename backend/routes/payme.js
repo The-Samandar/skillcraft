@@ -2,7 +2,6 @@ const router = require('express').Router();
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../db/init');
 const { grantCourseAccess } = require('../services/accessService');
-ё
 const PAYME_TIMEOUT_MS = 43200000;
 
 // AUTH 
