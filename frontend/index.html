@@ -139,15 +139,14 @@
 
     <div class="sc-step" id="scStep1">
       <p class="sc-phone-label">
-        Введите номер телефона — на него будет привязан доступ к урокам.<br>
-        После оплаты войдёте по этому номеру.
+        Введите номер телефона — на него будет привязан доступ к урокам.
       </p>
       <div class="sc-field-label">Телефон</div>
       <input
         type="tel"
         class="sc-input"
         id="scPhoneInput"
-        placeholder="+998 90 123 45 67"
+        placeholder="+998 90 123 45 67" 
         autocomplete="tel"
       />
       <div class="sc-error" id="scStep1Error"></div>
@@ -243,7 +242,20 @@
     document.body.style.overflow = 'hidden';
     showStep(1);
     phoneInput.focus();
-  }
+	phoneInput.placeholder = '+998 90 123 45 67';
+	if (!phoneInput.value) phoneInput.value = '+998 ';
+	phoneInput.setSelectionRange(phoneInput.value.length, phoneInput.value.length);
+
+	phoneInput.addEventListener('input', (e) => {
+  	let val = e.target.value.replace(/\D/g, '');
+ 	 if (!val.startsWith('998')) val = '998' + val.replace(/^998/, '');
+  	let formatted = '+998';
+  	if (val.length > 3) formatted += ' ' + val.slice(3, 5);
+  	if (val.length > 5) formatted += ' ' + val.slice(5, 8);
+  	if (val.length > 8) formatted += ' ' + val.slice(8, 10);
+  	if (val.length > 10) formatted += ' ' + val.slice(10, 12);
+  	e.target.value = formatted;
+	});}
 
   function closeModal() {
     overlay.classList.remove('active');
