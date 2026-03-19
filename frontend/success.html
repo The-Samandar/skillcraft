@@ -62,15 +62,16 @@
     }
   }
 
-  function renderSuccess(phone) {
+function renderSuccess(phone) {
     card.innerHTML = `
       <div class="icon">✅</div>
       <h1>Оплата прошла!</h1>
-      <p class="sub">Доступ к 11 урокам Excel открыт. Теперь ты можешь скачать все материалы.</p>
+      <p class="sub">Доступ к 11 урокам Excel открыт. Перенаправляем…</p>
       ${phone ? `<div class="phone-badge">📱 ${phone}</div>` : ''}
-      <a href="/lessons.html" class="btn">Перейти к урокам →</a>
-      <p class="note">Сохрани номер телефона — он нужен для восстановления доступа</p>
     `;
+    setTimeout(() => {
+      window.location.href = '/lessons.html';
+    }, 1500);
   }
 
   function renderPending(orderId, phone) {
