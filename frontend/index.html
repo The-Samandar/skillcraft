@@ -117,7 +117,6 @@
 
 <footer>
   <a href="#" class="logo">Skill<span>craft</span></a>
-  <p>Основы Excel для начинающих</p>
   <p>&copy; 2026 Skillcraft. Все права защищены.</p>
 </footer>
 
@@ -139,7 +138,7 @@
 
     <div class="sc-step" id="scStep1">
       <p class="sc-phone-label">
-        Введите номер телефона — на него будет привязан доступ к урокам.
+        Введите номер телефона — на него будет выдан доступ к урокам.
       </p>
       <div class="sc-field-label">Телефон</div>
       <input
@@ -336,8 +335,6 @@
     if (e.key === 'Enter') step1Next.click();
   });
 
-  const btnClickCard = document.getElementById('scBtnClickCard');
-
   async function startPayment(provider) {
     selectedProvider = provider;
     hideError(step2Error);
@@ -388,10 +385,9 @@
     }
   }
 
-  [btnClick, btnClickCard, btnPayme].forEach(btn => {
+  [btnClick, btnPayme].forEach(btn => {
     btn.addEventListener('click', () => {
       btnClick.classList.remove('selected');
-      btnClickCard.classList.remove('selected');
       btnPayme.classList.remove('selected');
       btn.classList.add('selected');
       startPayment(btn.dataset.provider);

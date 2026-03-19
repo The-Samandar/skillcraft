@@ -122,7 +122,7 @@
   }
 
   .btn-buy {
-    margin-top: 40px;
+    margin-top: 5px;
     display: inline-block;
     background: var(--green);
     color: var(--black);
@@ -136,6 +136,7 @@
     text-decoration: none;
     transition: all 0.2s;
     animation: fadeUp 0.6s 0.3s ease both;
+    width: 300px;
   }
   .btn-buy:hover {
     background: var(--accent);
@@ -284,8 +285,12 @@
 
   /* Таймер */
   .sale-timer {
-    display: flex; align-items: center; justify-content: center;
-    gap: 8px; margin: 12px 0 28px; flex-wrap: wrap;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    gap: 8px; 
+    margin: 12px 0 28px; 
+    flex-wrap: wrap;
   }
   .sale-timer-label {
     font-size: 12px; color: var(--muted); letter-spacing: 0.05em;
@@ -394,6 +399,7 @@
     transition: all 0.2s;
     border: none;
     cursor: pointer;
+    width: 300px;
   }
   .btn-buy-lg:hover {
     background: var(--accent);
@@ -476,7 +482,7 @@
   }
 
   .sc-modal-header {
-    padding: 32px 32px 0;
+    padding: 50px 32px 0;
     position: relative;
   }
 
@@ -499,8 +505,8 @@
 
   .sc-modal-close {
     position: absolute;
-    top: 28px;
-    right: 28px;
+    top: 12px;
+    right: 12px;
     width: 32px;
     height: 32px;
     background: var(--card);
@@ -753,7 +759,7 @@
   .sc-steps-indicator {
     display: flex;
     gap: 6px;
-    padding: 0 32px 20px;
+    padding: 0 32px 5px;
   }
   .sc-step-dot {
     height: 2px;
