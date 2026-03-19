@@ -21,6 +21,20 @@ const storageDir = path.join(__dirname, 'storage', 'lessons');
 if (!fs.existsSync(storageDir)) fs.mkdirSync(storageDir, { recursive: true });
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
+app.get('/api/debug/orders', (_, res) => {
+  const { db } = require('./db/init');
+
+  try {
+    const rows = db
+      .prepare('SELECT id, order_code, amount, status, user_id, created_at FROM orders ORDER BY id DESC')
+      .all();
+
+    res.json(rows);
+  } catch (e) {
+    console.error('DEBUG ORDERS ERROR:', e);
+    res.status(500).json({ error: 'Failed to read orders' });
+  }
+});
 
 async function start() {
   await initDatabase();

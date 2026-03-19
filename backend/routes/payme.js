@@ -17,7 +17,7 @@ function verifyAuth(req) {
   const colonIdx = decoded.indexOf(':');
 
   if (colonIdx === -1) {
-    console.log('❌ Payme auth: неверный формат');
+    console.log('❌ Payme auth: неверный формат Basic auth');
     return false;
   }
 
@@ -26,17 +26,21 @@ function verifyAuth(req) {
 
   const merchantId = (process.env.PAYME_MERCHANT_ID || '').trim();
   const secretKey = (process.env.PAYME_SECRET_KEY || '').trim();
-  const testKey = (process.env.PAYME_TEST_KEY || '').trim();
 
-  console.log(`🔑 Payme auth login="${login}"`);
+  console.log(`🔑 Payme auth: login="${login}", merchantId="${merchantId}"`);
 
   if (!merchantId) {
     console.log('❌ PAYME_MERCHANT_ID не задан');
     return false;
   }
 
-  const loginOk = login === merchantId;
-  const passOk = secretKey && pass === secretKey;
+  if (!secretKey) {
+    console.log('❌ PAYME_SECRET_KEY не задан');
+    return false;
+  }
+
+  const loginOk = login === merchantId || login === 'Paycom';
+  const passOk = pass === secretKey;
 
   if (!loginOk || !passOk) {
     console.log(`❌ Payme auth failed. login="${login}"`);
@@ -226,14 +230,20 @@ router.get('/checkout-url', (req, res) => {
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
-  const mid = process.env.PAYME_MERCHANT_ID;
-  if (!mid) return res.status(500).json({ error: 'Payme не настроен: нет PAYME_MERCHANT_ID' });
+  const mid = (process.env.PAYME_MERCHANT_ID || '').trim();
+  if (!mid) {
+    return res.status(500).json({ error: 'Payme не настроен: нет PAYME_MERCHANT_ID' });
+  }
 
   const params = `m=${mid};ac.order=${order.order_code};a=${order.amount};l=ru`;
   const encoded = Buffer.from(params).toString('base64');
   const base = 'https://checkout.paycom.uz';
+  const checkoutUrl = `${base}/${encoded}`;
 
-  return res.json({ checkout_url: `${base}/${encoded}` });
+  console.log('🔗 PAYME checkout params =', params);
+  console.log('🔗 PAYME checkout URL =', checkoutUrl);
+
+  return res.json({ checkout_url: checkoutUrl });
 });
 
 // CALLBACK
