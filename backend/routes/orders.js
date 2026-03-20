@@ -9,7 +9,11 @@ router.post('/', (req, res) => {
   if (!['click', 'payme'].includes(provider))
     return res.status(400).json({ error: 'Провайдер: click или payme' });
 
-  const amount = parseInt(process.env.COURSE_PRICE_TIYIN) || 9900000;
+  const saleEnd = new Date((process.env.SALE_END_DATE || '2026-03-30') + 'T23:59:59');
+  const isOnSale = new Date() < saleEnd;
+  const amount = isOnSale
+    ? (parseInt(process.env.COURSE_PRICE_SALE_TIYIN) || 4999900)
+    : (parseInt(process.env.COURSE_PRICE_NORMAL_TIYIN) || 9999800);
 
   try {
     let user = db.prepare('SELECT * FROM users WHERE phone = ?').get(phone);
