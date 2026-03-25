@@ -17,7 +17,7 @@
   const API_URL = 'https://skillcraft.uz';
   const card = document.getElementById('mainCard');
 
-  async function init() {
+async function init() {
     const orderId = localStorage.getItem('sc_order_id');
     const phone = localStorage.getItem('sc_phone');
 
@@ -26,20 +26,34 @@
       return;
     }
 
-    try {
-      const res = await fetch(`${API_URL}/api/orders/${orderId}`);
-      const order = await res.json();
+    let attempts = 0;
+    const maxAttempts = 10;
 
-      if (order.status === 'paid') {
-        await getTokenAndRender(orderId, phone);
-      } else if (order.status === 'pending') {
-        renderPending(orderId, phone);
-      } else {
-        renderFailed();
+    async function check() {
+      attempts++;
+      try {
+        const res = await fetch(`${API_URL}/api/orders/${orderId}`);
+        const order = await res.json();
+
+        if (order.status === 'paid') {
+          await getTokenAndRender(orderId, phone);
+        } else if (order.status === 'pending' && attempts < maxAttempts) {
+          setTimeout(check, 2000);
+        } else if (order.status === 'pending') {
+          renderPending(orderId, phone);
+        } else {
+          renderFailed();
+        }
+      } catch (e) {
+        if (attempts < maxAttempts) {
+          setTimeout(check, 2000);
+        } else {
+          renderPhoneForm();
+        }
       }
-    } catch (e) {
-      renderPhoneForm();
     }
+
+    check();
   }
 
   async function getTokenAndRender(orderId, phone) {
