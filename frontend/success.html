@@ -17,14 +17,23 @@
   const API_URL = 'https://skillcraft.uz';
   const card = document.getElementById('mainCard');
 
-async function init() {
-    const orderId = localStorage.getItem('sc_order_id');
-    const phone = localStorage.getItem('sc_phone');
-
-    if (!orderId) {
-      renderPhoneForm();
-      return;
+  // Генерируем уникальный токен устройства — сохраняется навсегда в браузере
+  function getDeviceToken() {
+    let token = localStorage.getItem('sc_device_token');
+    if (!token) {
+      token = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem('sc_device_token', token);
     }
+    return token;
+  }
+
+  async function init() {
+    const orderId = localStorage.getItem('sc_order_id');
+    const phone   = localStorage.getItem('sc_phone');
+
+    if (!orderId) { renderPhoneForm(); return; }
 
     let attempts = 0;
     const maxAttempts = 10;
@@ -32,7 +41,7 @@ async function init() {
     async function check() {
       attempts++;
       try {
-        const res = await fetch(`${API_URL}/api/orders/${orderId}`);
+        const res   = await fetch(`${API_URL}/api/orders/${orderId}`);
         const order = await res.json();
 
         if (order.status === 'paid') {
@@ -45,23 +54,20 @@ async function init() {
           renderFailed();
         }
       } catch (e) {
-        if (attempts < maxAttempts) {
-          setTimeout(check, 2000);
-        } else {
-          renderPhoneForm();
-        }
+        if (attempts < maxAttempts) setTimeout(check, 2000);
+        else renderPhoneForm();
       }
     }
-
     check();
   }
 
   async function getTokenAndRender(orderId, phone) {
     try {
-      const res = await fetch(`${API_URL}/api/access/token`, {
+      const res  = await fetch(`${API_URL}/api/access/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId }),
+        // После оплаты передаём orderId + device_token для привязки устройства
+        body: JSON.stringify({ orderId, device_token: getDeviceToken() }),
       });
       const data = await res.json();
       if (data.token) {
@@ -71,21 +77,17 @@ async function init() {
       } else {
         renderPhoneForm();
       }
-    } catch (e) {
-      renderPhoneForm();
-    }
+    } catch (e) { renderPhoneForm(); }
   }
 
-function renderSuccess(phone) {
+  function renderSuccess(phone) {
     card.innerHTML = `
       <div class="icon">✅</div>
       <h1>Оплата прошла!</h1>
       <p class="sub">Доступ к 11 урокам Excel открыт. Перенаправляем…</p>
       ${phone ? `<div class="phone-badge">📱 ${phone}</div>` : ''}
     `;
-    setTimeout(() => {
-      window.location.href = '/lessons.html';
-    }, 1500);
+    setTimeout(() => { window.location.href = '/lessons.html'; }, 1500);
   }
 
   function renderPending(orderId, phone) {
@@ -94,7 +96,6 @@ function renderSuccess(phone) {
       <h1>Оплата обрабатывается</h1>
       <p class="sub">Платёж ещё не подтверждён. Обычно это занимает до 2 минут.</p>
       <button class="btn" onclick="checkAgain('${orderId}','${phone || ''}')">Проверить ещё раз</button>
-      <p class="note">Если проблема не решается — введи номер телефона ниже</p>
       <br><button class="btn-outline" onclick="renderPhoneForm()">Ввести номер вручную</button>
     `;
   }
@@ -102,16 +103,11 @@ function renderSuccess(phone) {
   async function checkAgain(orderId, phone) {
     card.innerHTML = `<div class="spinner"></div><p style="color:var(--muted)">Проверяем…</p>`;
     try {
-      const res = await fetch(`${API_URL}/api/orders/${orderId}`);
+      const res   = await fetch(`${API_URL}/api/orders/${orderId}`);
       const order = await res.json();
-      if (order.status === 'paid') {
-        await getTokenAndRender(orderId, phone);
-      } else {
-        renderPending(orderId, phone);
-      }
-    } catch (e) {
-      renderPending(orderId, phone);
-    }
+      if (order.status === 'paid') await getTokenAndRender(orderId, phone);
+      else renderPending(orderId, phone);
+    } catch(e) { renderPending(orderId, phone); }
   }
 
   function renderFailed() {
@@ -123,51 +119,86 @@ function renderSuccess(phone) {
     `;
   }
 
+  function renderDeviceMismatch() {
+    card.innerHTML = `
+      <div class="icon">🔒</div>
+      <h1>Другое устройство</h1>
+      <p class="sub">Этот номер уже используется на другом устройстве. Если это вы — напишите нам в поддержку.</p>
+      <a href="/" class="btn-outline" style="display:block;text-decoration:none;text-align:center;padding:14px;margin-top:16px">← На главную</a>
+    `;
+  }
+
   function renderPhoneForm() {
     card.innerHTML = `
       <div class="icon">🔑</div>
       <h1>Войти по номеру</h1>
       <p class="sub">Введи номер телефона, который использовал при покупке курса</p>
       <div class="phone-form">
-        <input type="tel" class="phone-input" id="phoneInp" placeholder="+998 90 123 45 67" />
+        <input type="tel" class="phone-input" id="phoneInp" placeholder="+998 90 123 45 67" maxlength="17" />
         <div class="error" id="phoneErr"></div>
         <button class="btn" onclick="loginByPhone()">Получить доступ →</button>
       </div>
-      <a href="/" class="btn-outline" style="display:block; text-decoration:none; text-align:center; padding:14px">← На главную</a>
+      <a href="/" class="btn-outline" style="display:block;text-decoration:none;text-align:center;padding:14px">← На главную</a>
     `;
   }
 
   async function loginByPhone() {
-    const inp = document.getElementById('phoneInp');
-    const err = document.getElementById('phoneErr');
+    const inp   = document.getElementById('phoneInp');
+    const err   = document.getElementById('phoneErr');
     const phone = inp?.value?.trim();
     if (!phone) return;
-
     err.style.display = 'none';
-
     try {
-      const res = await fetch(`${API_URL}/api/access/token`, {
+      const res  = await fetch(`${API_URL}/api/access/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
+        // Передаём device_token для проверки устройства
+        body: JSON.stringify({ phone, device_token: getDeviceToken() }),
       });
       const data = await res.json();
       if (data.token) {
         localStorage.setItem('sc_token', data.token);
         localStorage.setItem('sc_phone', phone);
         renderSuccess(phone);
+      } else if (data.code === 'DEVICE_MISMATCH') {
+        renderDeviceMismatch();
       } else {
         err.textContent = data.error || 'Доступ не найден';
         err.style.display = 'block';
       }
     } catch (e) {
       const errEl = document.getElementById('phoneErr');
-      if (errEl) {
-        errEl.textContent = 'Ошибка соединения';
-        errEl.style.display = 'block';
-      }
+      if (errEl) { errEl.textContent = 'Ошибка соединения'; errEl.style.display = 'block'; }
     }
   }
+
+
+  // ─── МАСКА ТЕЛЕФОНА ───────────────────────────────────────
+  document.addEventListener('input', function(e) {
+    if (e.target.id !== 'phoneInp') return;
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.startsWith('998')) val = val.slice(3);
+    if (val.startsWith('0')) val = val.slice(1);
+    val = val.slice(0, 9);
+    let formatted = '+998';
+    if (val.length > 0) formatted += ' ' + val.slice(0, 2);
+    if (val.length > 2) formatted += ' ' + val.slice(2, 5);
+    if (val.length > 5) formatted += ' ' + val.slice(5, 7);
+    if (val.length > 7) formatted += ' ' + val.slice(7, 9);
+    e.target.value = formatted;
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.target.id !== 'phoneInp') return;
+    if (e.key === 'Enter') loginByPhone();
+    // Не даём удалить +998
+    if (e.key === 'Backspace' && e.target.value === '+998') e.preventDefault();
+  });
+
+  document.addEventListener('focus', function(e) {
+    if (e.target.id !== 'phoneInp' && e.target.id !== 'gatePhone') return;
+    if (!e.target.value) e.target.value = '+998 ';
+  }, true);
 
   init();
 </script>

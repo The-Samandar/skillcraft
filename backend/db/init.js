@@ -17,7 +17,6 @@ function save() {
   fs.writeFileSync(resolvedPath, Buffer.from(_db.export()));
 }
 
-// Именованные параметры: { key: val } → { '@key': val }
 function named(p) {
   if (!p || typeof p !== 'object' || Array.isArray(p)) return p;
   const out = {};
@@ -28,7 +27,6 @@ function named(p) {
 function makeProxy() {
   return {
     exec(sql) { _db.run(sql); save(); },
-
     prepare(sql) {
       return {
         run(p, ...rest) {
@@ -59,9 +57,7 @@ function makeProxy() {
         },
       };
     },
-
     pragma() {},
-
     transaction(fn) {
       return (...args) => {
         _db.run('BEGIN');
@@ -84,6 +80,7 @@ async function initDatabase() {
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       phone TEXT UNIQUE NOT NULL,
+      device_token TEXT,
       created_at DATETIME DEFAULT (datetime('now'))
     );
     CREATE TABLE IF NOT EXISTS orders (
@@ -133,7 +130,6 @@ async function initDatabase() {
   return dbProxy;
 }
 
-// Lazy proxy — используй db везде, он будет готов после initDatabase()
 const db = new Proxy({}, {
   get(_, prop) {
     if (!dbProxy) throw new Error('DB not ready. Call initDatabase() first.');

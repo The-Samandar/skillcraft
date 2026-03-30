@@ -31,10 +31,22 @@
     'Условное форматирование и контроль данных',
     'Сводные таблицы',
     'Диаграммы и визуализация',
-    'Финальный проект и подготовка к трудоустройству',
+    'Финальный проект и подготовка к трудоустройству',
   ];
 
   const root = document.getElementById('appRoot');
+
+  // Получаем device_token из localStorage
+  function getDeviceToken() {
+    let token = localStorage.getItem('sc_device_token');
+    if (!token) {
+      token = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem('sc_device_token', token);
+    }
+    return token;
+  }
 
   async function init() {
     const token = localStorage.getItem('sc_token');
@@ -177,7 +189,7 @@
         <div style="font-size:48px;margin-bottom:20px">🔐</div>
         <h2>Введи номер телефона</h2>
         <p>Укажи номер телефона, который использовал при покупке курса</p>
-        <input type="tel" class="sc-input" id="gatePhone" placeholder="+998 90 123 45 67" />
+        <input type="tel" class="sc-input" id="gatePhone" placeholder="+998 90 123 45 67" maxlength="17" />
         <div class="gate-error" id="gateErr"></div>
         <button class="sc-btn" onclick="gateLogin()">Войти →</button>
         <p style="margin-top:16px;font-size:12px;color:var(--muted)">
@@ -190,18 +202,29 @@
     });
   }
 
+  function renderDeviceMismatch() {
+    root.innerHTML = `
+      <div class="gate">
+        <div style="font-size:48px;margin-bottom:20px">🔒</div>
+        <h2>Доступ заблокирован</h2>
+        <p>Этот номер уже используется на другом устройстве.<br>Если это вы — напишите нам в поддержку.</p>
+        <a href="/" style="color:var(--green);font-size:13px;text-decoration:none">← На главную</a>
+      </div>
+    `;
+  }
+
   async function gateLogin() {
     const phone = document.getElementById('gatePhone')?.value?.trim();
     const err   = document.getElementById('gateErr');
     if (!phone) return;
-
     err.classList.remove('visible');
 
     try {
       const res  = await fetch(`${API_URL}/api/access/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone })
+        // Передаём device_token для проверки
+        body: JSON.stringify({ phone, device_token: getDeviceToken() })
       });
       const data = await res.json();
       if (data.token) {
@@ -209,16 +232,15 @@
         localStorage.setItem('sc_phone', phone);
         document.getElementById('logoutBtn').style.display = 'block';
         renderDownload(phone);
+      } else if (data.code === 'DEVICE_MISMATCH') {
+        renderDeviceMismatch();
       } else {
         err.textContent = data.error || 'Доступ не найден';
         err.classList.add('visible');
       }
     } catch {
       const errEl = document.getElementById('gateErr');
-      if (errEl) {
-        errEl.textContent = 'Ошибка соединения';
-        errEl.classList.add('visible');
-      }
+      if (errEl) { errEl.textContent = 'Ошибка соединения'; errEl.classList.add('visible'); }
     }
   }
 
@@ -234,6 +256,32 @@
     t.className = `toast show ${type}`;
     setTimeout(() => { t.className = 'toast'; }, 3500);
   }
+
+
+  // ─── МАСКА ТЕЛЕФОНА ───────────────────────────────────────
+  document.addEventListener('input', function(e) {
+    if (e.target.id !== 'gatePhone') return;
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.startsWith('998')) val = val.slice(3);
+    if (val.startsWith('0')) val = val.slice(1);
+    val = val.slice(0, 9);
+    let formatted = '+998';
+    if (val.length > 0) formatted += ' ' + val.slice(0, 2);
+    if (val.length > 2) formatted += ' ' + val.slice(2, 5);
+    if (val.length > 5) formatted += ' ' + val.slice(5, 7);
+    if (val.length > 7) formatted += ' ' + val.slice(7, 9);
+    e.target.value = formatted;
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.target.id !== 'gatePhone') return;
+    if (e.key === 'Backspace' && e.target.value === '+998') e.preventDefault();
+  });
+
+  document.addEventListener('focus', function(e) {
+    if (e.target.id !== 'gatePhone') return;
+    if (!e.target.value) e.target.value = '+998 ';
+  }, true);
 
   init();
 </script>
